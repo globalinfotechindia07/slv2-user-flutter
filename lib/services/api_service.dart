@@ -1,0 +1,407 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'auth_service.dart';
+import 'package:http_parser/http_parser.dart';
+
+// ── API Constants — ─────────────────────────────────────
+class ApiConstants {
+  // static const String userBaseUrl =
+  //     'https://shubhlabhpatsanstha.org/backend/userss';
+  // static const String adminBaseUrl =
+  //     'https://shubhlabhpatsanstha.org/backend/admin';
+  // static const String otpBaseUrl =
+  //     'https://shubhlabhpatsanstha.org/backend/otp';
+  // static const String razorpayKey = 'rzp_test_R7xzyaqsmw9C9O';
+  static const String userBaseUrl =
+      'http://192.168.1.14/backend/userss';
+  static const String adminBaseUrl =
+      'http://192.168.1.14/backend/admin';
+  static const String otpBaseUrl =
+      'http://192.168.1.14/backend/otp';
+  static const String razorpayKey = 'rzp_test_R7xzyaqsmw9C9O';
+}
+
+class ApiService {
+  static const Map<String, String> _headers = {
+    'Content-Type': 'application/json',
+  };
+
+  
+  static Future<Map<String, dynamic>> sendOtp(String phoneNumber) async {
+    final response = await http.post(
+      Uri.parse(
+          '${ApiConstants.otpBaseUrl}/new_otp2.php?action=send_otp'),
+      headers: _headers,
+      body: jsonEncode({'phone_number': phoneNumber}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> verifyOtp(
+      String phoneNumber, String otp) async {
+    final response = await http.post(
+      Uri.parse(
+          '${ApiConstants.otpBaseUrl}/new_otp2.php?action=verify_otp'),
+      headers: _headers,
+      body: jsonEncode({
+        'phone_number': phoneNumber,
+        'otp': otp,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+ 
+  static Future<Map<String, dynamic>> resetMpin(
+      String phoneNumber, String newMpin) async {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.userBaseUrl}/reset-mpin.php'),
+      headers: _headers,
+      body: jsonEncode({
+        'phoneNumber': phoneNumber,
+        'mpin': newMpin,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+ 
+  static Future<Map<String, dynamic>> registerUser(
+      Map<String, dynamic> formData) async {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.userBaseUrl}/register.php'),
+      headers: _headers,
+      body: jsonEncode(formData),
+    );
+    return jsonDecode(response.body);
+  }
+
+ 
+  static Future<Map<String, dynamic>> checkUserRegistration(
+      String phoneNumber) async {
+    final response = await http.post(
+      Uri.parse(
+          '${ApiConstants.userBaseUrl}/check-registration.php'),
+      headers: _headers,
+      body: jsonEncode({'phoneNumber': phoneNumber}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> getUserById(String userId) async {
+    final response = await http.get(
+      Uri.parse(
+          '${ApiConstants.userBaseUrl}/getUser.php?userId=$userId'),
+      headers: _headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+ 
+  static Future<Map<String, dynamic>> verifyUserToken() async {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.userBaseUrl}/verify_token.php'),
+      headers: _headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+
+  static Future<Map<String, dynamic>> getTransactions(
+      String userId) async {
+    final response = await http.get(
+      Uri.parse(
+          '${ApiConstants.userBaseUrl}/get_transactions.php?user_id=$userId'),
+      headers: _headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+  
+  static Future<Map<String, dynamic>> getNotifications(
+      String userId) async {
+    final response = await http.get(
+      Uri.parse(
+          '${ApiConstants.userBaseUrl}/notifications.php?user_id=$userId'),
+      headers: _headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+ 
+  static Future<void> markAsRead(
+      String notificationId, String userId) async {
+    await http.put(
+      Uri.parse('${ApiConstants.userBaseUrl}/notifications.php'),
+      headers: _headers,
+      body: jsonEncode({
+        'notification_id': notificationId,
+        'user_id': userId,
+      }),
+    );
+  }
+
+  static Future<Map<String, dynamic>> listPopularServices() async {
+    final response = await http.get(
+      Uri.parse(
+          '${ApiConstants.adminBaseUrl}/getPopularServices.php'),
+      headers: _headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+  // listOffersCard — GET admin/list_OffersCard.php
+  static Future<Map<String, dynamic>> listOffersCard() async {
+    final response = await http.get(
+      Uri.parse(
+          '${ApiConstants.adminBaseUrl}/list_OffersCard.php'),
+      headers: _headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+  
+  static Future<Map<String, dynamic>> getLoanApplications(
+      String userId) async {
+    final response = await http.get(
+      Uri.parse(
+          '${ApiConstants.userBaseUrl}/getLoanApplication.php?userId=$userId'),
+      headers: _headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+ 
+  static Future<Map<String, dynamic>> fetchCategories() async {
+    final response = await http.get(
+      Uri.parse(
+          '${ApiConstants.userBaseUrl}/get_loan_categories.php'),
+      headers: _headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+
+  static Future<Map<String, dynamic>> addForm(
+      Map<String, dynamic> formData) async {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.userBaseUrl}/add_form.php'),
+      headers: _headers,
+      body: jsonEncode(formData),
+    );
+    return jsonDecode(response.body);
+  }
+
+
+  static Future<Map<String, dynamic>> listShop() async {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.userBaseUrl}/listShop.php'),
+      headers: _headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+  
+  static Future<Map<String, dynamic>> uploadProfileImage(
+      String filePath, String userId) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('${ApiConstants.userBaseUrl}/upload_profile.php'),
+    );
+    request.fields['user_id'] = userId;
+    String ext = filePath.split('.').last.toLowerCase();
+  if (!['jpg', 'jpeg', 'png', 'gif'].contains(ext)) {
+    ext = 'jpg';
+  }
+
+  final mimeMap = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+  };
+    request.files.add(
+    await http.MultipartFile.fromPath(
+      'profile_image',
+      filePath,
+      filename: 'profile.$ext',
+      contentType: MediaType.parse(mimeMap[ext]!),
+    ),
+  );
+
+  final streamedResponse = await request.send();
+  final response = await http.Response.fromStream(streamedResponse);
+  return jsonDecode(response.body);
+}
+
+  static Future<Map<String, dynamic>> sendEmailOtp(String email) async {
+  try {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.otpBaseUrl}/send_email_otp.php'),
+      headers: _headers,
+      body: jsonEncode({'email': email}),
+    );
+    if (response.body.trim().startsWith('<')) {
+      return {'success': false, 'message': 'Email verification service not available yet'};
+    }
+    return jsonDecode(response.body);
+  } catch (e) {
+    return {'success': false, 'message': 'Email verification service not available yet'};
+  }
+}
+
+static Future<Map<String, dynamic>> verifyEmailOtp(String email, String otp) async {
+  try {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.otpBaseUrl}/verify_email_otp.php'),
+      headers: _headers,
+      body: jsonEncode({'email': email, 'otp': otp}),
+    );
+    if (response.body.trim().startsWith('<')) {
+      return {'success': false, 'message': 'Email verification service not available yet'};
+    }
+    return jsonDecode(response.body);
+  } catch (e) {
+    return {'success': false, 'message': 'Email verification service not available yet'};
+  }
+}
+
+static Future<Map<String, dynamic>> sendAadhaarOtp(String phone, String aadhaar) async {
+  try {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.otpBaseUrl}/send_aadhaar_otp.php'),
+      headers: _headers,
+      body: jsonEncode({'phone': phone, 'aadhaar': aadhaar}),
+    );
+    if (response.body.trim().startsWith('<')) {
+      return {'success': false, 'message': 'Aadhaar verification service not available yet'};
+    }
+    return jsonDecode(response.body);
+  } catch (e) {
+    return {'success': false, 'message': 'Aadhaar verification service not available yet'};
+  }
+}
+
+static Future<Map<String, dynamic>> verifyAadhaarOtp(String phone, String aadhaar, String otp) async {
+  try {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.otpBaseUrl}/verify_aadhaar_otp.php'),
+      headers: _headers,
+      body: jsonEncode({'phone': phone, 'aadhaar': aadhaar, 'otp': otp}),
+    );
+    if (response.body.trim().startsWith('<')) {
+      return {'success': false, 'message': 'Aadhaar verification service not available yet'};
+    }
+    return jsonDecode(response.body);
+  } catch (e) {
+    return {'success': false, 'message': 'Aadhaar verification service not available yet'};
+  }
+}
+static Future<Map<String, dynamic>> logout() async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.userBaseUrl}/logout.php'),
+    headers: _headers,
+  );
+  return jsonDecode(response.body);
+}
+static Future<Map<String, dynamic>> sendReferenceOtp({
+  required String phoneNumber,
+  required String referenceName,
+  required String applicationName,
+}) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.otpBaseUrl}/new_otp2.php?action=send_otp'),
+    headers: _headers,
+    body: jsonEncode({
+      'phone_number': phoneNumber,
+      'reference_name': referenceName,
+      'application_name': applicationName,
+    }),
+  );
+  return jsonDecode(response.body);
+}
+static Future<Map<String, dynamic>> verifyReferenceOtp(
+    String phoneNumber, String otp) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.otpBaseUrl}/new_otp2.php?action=verify_otp'),
+    headers: _headers,
+    body: jsonEncode({
+      'phone_number': phoneNumber,
+      'otp': otp,
+    }),
+  );
+  return jsonDecode(response.body);
+}
+static Future<Map<String, dynamic>> saveLoanDocuments(
+    Map<String, dynamic> data) async {
+  final request = http.MultipartRequest(
+    'POST',
+    Uri.parse('${ApiConstants.adminBaseUrl}/save_loan_documents.php'),
+  );
+
+  // Plain string fields
+  final stringFields = [
+    'loan_id', 'application_id', 'userName', 'userDepartment',
+    'bankName', 'accountNumber', 'ifscCode',
+    'reference1Name', 'reference1Contact',
+    'reference2Name', 'reference2Contact',
+  ];
+  for (final key in stringFields) {
+    if (data[key] != null) {
+      request.fields[key] = data[key].toString();
+    }
+  }
+
+  final token = await AuthService.getToken();
+  if (token != null && token.isNotEmpty) {
+    request.headers['Authorization'] = 'Bearer $token';
+  }
+
+  // EMI plan as JSON string
+  if (data['selectedEmiPlan'] != null) {
+    request.fields['selectedEmiPlan'] = jsonEncode(data['selectedEmiPlan']);
+  }
+
+  // File fields — value is a local file path string
+  final fileFields = [
+    'passbookDoc', 'agreementDoc', 'nachDoc',
+    'reference1AadharDoc', 'reference1AadharDocBack', 'reference1PanDoc',
+    'reference2AadharDoc', 'reference2AadharDocBack', 'reference2PanDoc',
+  ];
+  for (final key in fileFields) {
+    if (data[key] != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath(key, data[key] as String),
+      );
+    }
+  }
+
+  final streamed = await request.send();
+  final response = await http.Response.fromStream(streamed);
+  print('saveLoanDocuments response: ${response.body}');
+  return jsonDecode(response.body);
+}
+static Future<void> sendNotification(String message, dynamic userId) async {
+  await http.post(
+    Uri.parse('${ApiConstants.userBaseUrl}/notifications.php'),
+    headers: _headers,
+    body: jsonEncode({
+      'message': message,
+      'user_id': userId,
+    }),
+  );
+}
+static Future<Map<String, dynamic>> verifyMpin(
+    String phoneNumber, String mpin) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.userBaseUrl}/verify_mpin.php'),
+    headers: _headers,
+    body: jsonEncode({
+      'phoneNumber': phoneNumber,
+      'mpin': mpin,
+    }),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+}
