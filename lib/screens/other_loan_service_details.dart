@@ -92,95 +92,95 @@ class _OtherLoanServiceDetailScreenState
     final key = isLoan ? 'Loan' : title;
 
     final Map<String, List<_SlideData>> slidess = {
-      'FD Scheme': [
-        _SlideData('Fixed Deposit Plans',
-            'Secure your future with our high-interest FD schemes',
-            Icons.savings),
-        _SlideData('Guaranteed Returns',
-            'Get assured returns up to 7.5% per annum',
-            Icons.trending_up),
-        _SlideData('Flexible Tenure',
-            'Choose tenure from 7 days to 10 years',
-            Icons.access_time_rounded),
-      ],
-      'Savings Account': [
-        _SlideData('Savings Account',
-            'Start your savings journey with zero balance account',
-            Icons.account_balance),
-        _SlideData('Digital Banking',
-            '24/7 access to your account with our mobile banking',
-            Icons.phone_android),
-        _SlideData('Additional Benefits',
-            'Free ATM card and unlimited transactions',
-            Icons.credit_card),
-      ],
-      'Daily Account': [
-        _SlideData('Convenient Deposits',
-            'Deposit your daily earnings with ease',
-            Icons.calendar_today),
-        _SlideData('No Minimum Balance',
-            'Maintain your account without worrying about a minimum balance',
-            Icons.account_balance_wallet),
-        _SlideData('Instant Access',
-            'Get immediate access to your funds anytime',
-            Icons.flash_on),
-      ],
-      'Current Account': [
-        _SlideData('Business-Friendly Features',
-            'Manage your business transactions seamlessly',
-            Icons.business),
-        _SlideData('Overdraft Facility',
-            'Enjoy an overdraft facility for smooth operations',
-            Icons.trending_up),
-        _SlideData('Unlimited Transactions',
-            'Conduct unlimited transactions without extra fees',
-            Icons.repeat),
-      ],
-      'Insurance Services': [
-        _SlideData('Vehicle Insurance',
-            'Protect your vehicle with comprehensive insurance',
-            Icons.directions_car),
-        _SlideData('Health Insurance',
-            'Secure your health with affordable medical coverage',
-            Icons.health_and_safety),
-        _SlideData('Life Insurance',
-            'Enjoy life worry-free with life insurance',
-            Icons.favorite),
-      ],
-      'Loan': [
-        _SlideData('Hassle-free Loan Process',
-            'Quick approval with competitive interest rates',
-            Icons.assignment),
-        _SlideData('Flexible Repayment',
-            'Make your dream home a reality with flexible EMIs',
-            Icons.calendar_month),
-        _SlideData('Quick Approvals',
-            'Drive your dream car with our vehicle loan offers',
-            Icons.check_circle),
-      ],
-      'RD Scheme': [
-        _SlideData('Regular Savings',
-            'Save a fixed amount every month with attractive interest rates',
-            Icons.repeat),
-        _SlideData('Flexible Deposit Plans',
-            'Choose plans that suit your savings needs',
-            Icons.layers),
-        _SlideData('Higher Returns',
-            'Earn higher returns compared to a savings account',
-            Icons.trending_up),
-      ],
-      'Sukanya yojana': [
-        _SlideData("Secure Girl's Future",
-            "A government-backed scheme to support girl child education",
-            Icons.child_care),
-        _SlideData('High Returns',
-            'Earn up to 8% interest with tax benefits',
-            Icons.percent),
-        _SlideData('Flexible Deposits',
-            'Start with a minimum deposit and save regularly',
-            Icons.savings),
-      ],
-    };
+  'FD Scheme': [
+    _SlideData('Fixed Deposit Plans',
+        'Secure your future with our high-interest FD schemes',
+        'assets/images/fd1.png'),
+    _SlideData('Guaranteed Returns',
+        'Get assured returns up to 7.5% per annum',
+        'assets/images/fd22.png'),
+    _SlideData('Flexible Tenure',
+        'Choose tenure from 7 days to 10 years',
+        'assets/images/fd33.png'),
+  ],
+  'Savings Account': [
+    _SlideData('Savings Account',
+        'Start your savings journey with zero balance account',
+        'assets/images/s1.png'),
+    _SlideData('Digital Banking',
+        '24/7 access to your account with our mobile banking',
+        'assets/images/s2.png'),
+    _SlideData('Additional Benefits',
+        'Free ATM card and unlimited transactions',
+        'assets/images/s3.png'),
+  ],
+  'Daily Account': [
+    _SlideData('Convenient Deposits',
+        'Deposit your daily earnings with ease',
+        'assets/images/d1.png'),
+    _SlideData('No Minimum Balance',
+        'Maintain your account without worrying about a minimum balance',
+        'assets/images/d2.png'),
+    _SlideData('Instant Access',
+        'Get immediate access to your funds anytime',
+        'assets/images/d3.png'),
+  ],
+  'Current Account': [
+    _SlideData('Business-Friendly Features',
+        'Manage your business transactions seamlessly',
+        'assets/images/d1.png'),
+    _SlideData('Overdraft Facility',
+        'Enjoy an overdraft facility for smooth operations',
+        'assets/images/d2.png'),
+    _SlideData('Unlimited Transactions',
+        'Conduct unlimited transactions without extra fees',
+        'assets/images/d3.png'),
+  ],
+  'Insurance Services': [
+    _SlideData('Vehicle Insurance',
+        'Protect your vehicle with comprehensive insurance',
+        'assets/images/i3.png'),
+    _SlideData('Health Insurance',
+        'Secure your health with affordable medical coverage',
+        'assets/images/i1.png'),
+    _SlideData('Life Insurance',
+        'Enjoy life worry-free with life insurance',
+        'assets/images/i2.png'),
+  ],
+  'Loan': [
+    _SlideData('Hassle-free Loan Process',
+        'Quick approval with competitive interest rates',
+        'assets/images/l1.png'),
+    _SlideData('Flexible Repayment',
+        'Make your dream home a reality with flexible EMIs',
+        'assets/images/fd33.png'),
+    _SlideData('Quick Approvals',
+        'Drive your dream car with our vehicle loan offers',
+        'assets/images/l2.png'),
+  ],
+  'RD Scheme': [
+    _SlideData('Regular Savings',
+        'Save a fixed amount every month with attractive interest rates',
+        'assets/images/fd1.png'),
+    _SlideData('Flexible Deposit Plans',
+        'Choose plans that suit your savings needs',
+        'assets/images/fd22.png'),
+    _SlideData('Higher Returns',
+        'Earn higher returns compared to a savings account',
+        'assets/images/fd33.png'),
+  ],
+  'Sukanya yojana': [
+    _SlideData("Secure Girl's Future",
+        "A government-backed scheme to support girl child education",
+        'assets/images/sk1.png'),
+    _SlideData('High Returns',
+        'Earn up to 8% interest with tax benefits',
+        'assets/images/fd33.png'),
+    _SlideData('Flexible Deposits',
+        'Start with a minimum deposit and save regularly',
+        'assets/images/sk2.png'),
+  ],
+};
 
     return slidess[key] ?? [];
   }
@@ -351,27 +351,13 @@ class _OtherLoanServiceDetailScreenState
                                             ),
                                           ),
                                           const SizedBox(height: 16),
-                                          Container(
-                                            height: 120,
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                                colors: [
-                                                  const Color(0xFFFFF1F2),
-                                                  const Color(0xFFEFF6FF),
-                                                ],
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                            ),
-                                            child: Center(
-                                              child: Icon(
-                                                slide.icon,
-                                                size: 64,
-                                                color: const Color(0xFFDC2626)
-                                                    .withOpacity(0.7),
-                                              ),
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(16),
+                                            child: Image.asset(
+                                              slide.image,
+                                              height: 120,
+                                              width: double.infinity,
+                                              fit: BoxFit.contain,
                                             ),
                                           ),
                                         ],
@@ -1061,8 +1047,8 @@ class _SubmitButtonState extends State<_SubmitButton> {
 class _SlideData {
   final String title;
   final String description;
-  final IconData icon;
-  const _SlideData(this.title, this.description, this.icon);
+  final String image;
+  const _SlideData(this.title, this.description, this.image);
 }
 
 // ── Grid Painter ──────────────────────────────────────────────────────────────

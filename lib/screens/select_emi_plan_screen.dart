@@ -564,50 +564,69 @@ if (_currentStep == _stepLabels.length - 1) {
           ),
 // Left cannon
 Positioned(
-  top: 0,
   left: 0,
+  top: MediaQuery.of(context).size.height * 0.4,
   child: ConfettiWidget(
     confettiController: _confettiControllerLeft,
-    blastDirection: (pi / 2) * 0.7,
+    blastDirection: 0,
     blastDirectionality: BlastDirectionality.directional,
-    numberOfParticles: 40,
-    gravity: 0.3,
-    emissionFrequency: 0.05,
-    minimumSize: const Size(5, 5),
-    maximumSize: const Size(10, 10),
+    numberOfParticles: 22,
+    gravity: 0.15,
+    emissionFrequency: 0.02,
+    minimumSize: const Size(3, 3),
+    maximumSize: const Size(6, 6),
     colors: const [
-      Color(0xFF2563EB),
-      Color(0xFF16A34A),
-      Color(0xFFF59E0B),
-      Color(0xFFEF4444),
-      Color(0xFF8B5CF6),
+      Color(0xFF93C5FD), // light blue
+      Color(0xFF86EFAC), // light green
+      Color(0xFFFCD34D), // light yellow
+      Color(0xFFFCA5A5), // light pink
+      Color(0xFFC4B5FD), // light purple
+      Color(0xFFFDBA74), // light orange
+      Color(0xFFA5F3FC), // light cyan
     ],
+    createParticlePath: (size) {
+      final path = Path();
+      path.addOval(Rect.fromCircle(
+        center: Offset(size.width / 2, size.height / 2),
+        radius: size.width / 2,
+      ));
+      return path;
+    },
   ),
 ),
 
 // Right cannon
 Positioned(
-  top: 0,
   right: 0,
+  top: MediaQuery.of(context).size.height * 0.4,
   child: ConfettiWidget(
     confettiController: _confettiControllerRight,
-    blastDirection: pi + (pi / 2) * 0.7,
+    blastDirection: pi,
     blastDirectionality: BlastDirectionality.directional,
-    numberOfParticles: 40,
-    gravity: 0.3,
-    emissionFrequency: 0.05,
-    minimumSize: const Size(5, 5),
-    maximumSize: const Size(10, 10),
+    numberOfParticles: 22,
+    gravity: 0.15,
+    emissionFrequency: 0.02,
+    minimumSize: const Size(3, 3),
+    maximumSize: const Size(6, 6),
     colors: const [
-      Color(0xFF2563EB),
-      Color(0xFF16A34A),
-      Color(0xFFF59E0B),
-      Color(0xFFEF4444),
-      Color(0xFF8B5CF6),
+      Color(0xFF93C5FD), // light blue
+      Color(0xFF86EFAC), // light green
+      Color(0xFFFCD34D), // light yellow
+      Color(0xFFFCA5A5), // light pink
+      Color(0xFFC4B5FD), // light purple
+      Color(0xFFFDBA74), // light orange
+      Color(0xFFA5F3FC), // light cyan
     ],
+    createParticlePath: (size) {
+      final path = Path();
+      path.addOval(Rect.fromCircle(
+        center: Offset(size.width / 2, size.height / 2),
+        radius: size.width / 2,
+      ));
+      return path;
+    },
   ),
-),
-          
+),       
           // Toast
           if (_toast != null)
             Positioned(

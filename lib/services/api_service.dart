@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:flutter/foundation.dart';
 
 // ── API Constants — ─────────────────────────────────────
 class ApiConstants {
@@ -12,13 +13,16 @@ class ApiConstants {
   // static const String otpBaseUrl =
   //     'https://shubhlabhpatsanstha.org/backend/otp';
   // static const String razorpayKey = 'rzp_test_R7xzyaqsmw9C9O';
-  static const String userBaseUrl =
+    static const String userBaseUrl =
       'http://192.168.1.14/backend/userss';
-  static const String adminBaseUrl =
-      'http://192.168.1.14/backend/admin';
-  static const String otpBaseUrl =
-      'http://192.168.1.14/backend/otp';
-  static const String razorpayKey = 'rzp_test_R7xzyaqsmw9C9O';
+    static const String adminBaseUrl =
+        'http://192.168.1.14/backend/admin';
+    static const String otpBaseUrl =
+        'http://192.168.1.14/backend/otp';
+    static const String servicesBaseUrl =
+        'http://192.168.1.14/backend/services';
+    static const String razorpayKey = 'rzp_test_R7xzyaqsmw9C9O';
+
 }
 
 class ApiService {
@@ -404,4 +408,81 @@ static Future<Map<String, dynamic>> verifyMpin(
   data['statusCode'] = response.statusCode;
   return data;
 }
+static Future<Map<String, dynamic>> getOperators({String category = 'Prepaid'}) async {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.servicesBaseUrl}/getoperator.php?category=$category'),
+      headers: _headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> checkHlr(String number, {String type = 'mobile'}) async {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.servicesBaseUrl}/hlr-check.php'),
+      headers: _headers,
+      body: jsonEncode({'number': number, 'type': type}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> browsePlans({
+    required String circle,
+    required String? operatorName,
+  }) async {
+    final response = await http.post(
+      Uri.parse('${ApiConstants.servicesBaseUrl}/browseplans.php'),
+      headers: _headers,
+      body: jsonEncode({'circle': circle, 'op': operatorName}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> createRechargeOrder({
+    required String activeTab,
+    required int? planId,
+    required String amount,
+    required String circle,
+    required String? operatorName,
+    required String mobileNumber,
+  }) async {
+    final token = await AuthService.getToken();
+    debugPrint('RECHARGE TOKEN: $token');
+    final response = await http.post(
+      Uri.parse('${ApiConstants.servicesBaseUrl}/create-order.php'),
+      headers: {
+        ..._headers,
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'activeTab': activeTab,
+        'planId': planId,
+        'amount': amount,
+        'circle': circle,
+        'op': operatorName,
+        'mobile_number': mobileNumber,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> verifyRechargePayment({
+    required String razorpayPaymentId,
+    required String razorpayOrderId,
+    required String razorpaySignature,
+  }) async {
+    final token = await AuthService.getToken();
+    final response = await http.post(
+      Uri.parse('${ApiConstants.servicesBaseUrl}/verify-payment.php'),
+      headers: {
+        ..._headers,
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'razorpay_payment_id': razorpayPaymentId,
+        'razorpay_order_id': razorpayOrderId,
+        'razorpay_signature': razorpaySignature,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
 }

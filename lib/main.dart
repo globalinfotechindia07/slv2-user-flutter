@@ -11,6 +11,14 @@ import 'screens/loan_details_screen.dart';
 // import 'models/loan_form_model.dart';
 import '../screens/other_loan_service_details.dart';
 import 'screens/select_emi_plan_screen.dart';
+import 'Bill/recharge/MobileRecharge.dart';
+import 'services/auth_service.dart';
+import 'Bill/Dth/dth.dart';
+import 'Bill/Dth/DthRechargeDetails.dart';
+import 'Bill/Dth/DthPayPage.dart';
+import 'Bill/Electricity/Electricity.dart';
+import 'Bill/Electricity/ElectricityDetails.dart';
+import 'Bill/Electricity/ElectricityPayPage.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,6 +77,25 @@ class ShubhLabhApp extends StatelessWidget {
           //     ),
           //   );
 
+          case '/app/billPayments/mobileRecharge':
+            final args = settings.arguments as Map<String, dynamic>? ?? {};
+            return MaterialPageRoute(
+              builder: (_) => FutureBuilder<String>(
+                future: AuthService.getUserId(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  return MobileRechargeScreen(
+                    userProfile: {'id': snapshot.data},
+                    serviceDetails: args,
+                  );
+                },
+              ),
+            );
+
           case '/app/loanDetails':
             final map = settings.arguments as Map<String, dynamic>? ?? {};
             return MaterialPageRoute(
@@ -90,6 +117,26 @@ class ShubhLabhApp extends StatelessWidget {
                 builder: (_) => SelectEmiPlanScreen(
                   loanDetails: args['loanDetails'] as Map<String, dynamic>? ?? {},
                   userProfile: args['userProfile'] as Map<String, dynamic>? ?? {},
+                ),
+              );
+            case '/app/dth-recharge/details':
+              final args = settings.arguments as Map<String, dynamic>? ?? {};
+              return MaterialPageRoute(
+                builder: (_) => DthRechargeDetails(
+                  args: DthRechargeDetailsArgs(
+                    operatorName: args['operatorName']?.toString() ?? '',
+                    operatorId: args['operatorId']?.toString() ?? '',
+                  ),
+                ),
+              );
+
+            case '/app/dth-recharge/pay':
+              final args = settings.arguments as Map<String, dynamic>? ?? {};
+              return MaterialPageRoute(
+                builder: (_) => DthPayScreen(
+                  subscriberId: args['subscriberId']?.toString() ?? '',
+                  operatorName: args['operatorName']?.toString() ?? '',
+                  operatorId: args['operatorId']?.toString() ?? '',
                 ),
               );
           // Placeholder for mobile loan form
@@ -126,6 +173,36 @@ class ShubhLabhApp extends StatelessWidget {
                 body: const Center(child: Text('Profile Screen — Coming Soon')),
               ),
             );
+            case '/app/billPayments/DthRecharge':
+              return MaterialPageRoute(
+                builder: (_) => const DthScreen(),
+              );
+            
+            case '/app/billPayments/electricityBill':
+              return MaterialPageRoute(
+                builder: (_) => const ElectricityScreen(),
+              );
+            case '/app/electricity-recharge/details':
+              final args = settings.arguments as Map<String, dynamic>? ?? {};
+              return MaterialPageRoute(
+                builder: (_) => ElectricityDetails(
+                  args: ElectricityDetailsArgs(
+                    operatorName: args['operatorName']?.toString() ?? '',
+                    operatorId: args['operatorId']?.toString() ?? '',
+                    operatorData: args['operatorData'] as Map<String, dynamic>? ?? {},
+                  ),
+                ),
+              );
+              case '/app/electricity-recharge/pay':
+                final args = settings.arguments as Map<String, dynamic>? ?? {};
+                return MaterialPageRoute(
+                  builder: (_) => ElectricityPayScreen(
+                    operatorName: args['operatorName']?.toString() ?? '',
+                    operatorId: args['operatorId']?.toString() ?? '',
+                    operatorData: args['operatorData'] as Map<String, dynamic>? ?? {},
+                    formData: Map<String, String>.from(args['formData'] as Map? ?? {}),
+                  ),
+                );
 
           default:
             return null;

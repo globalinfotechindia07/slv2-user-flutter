@@ -11,6 +11,7 @@ class AuthService {
     required String userId,
     required String phone,
     Map<String, dynamic>? user,
+    String? token, 
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyIsLoggedIn, true);
@@ -19,7 +20,10 @@ class AuthService {
     if (user != null) {
       await prefs.setString(_keyUser, jsonEncode(user));
     }
+     if (token != null && token.isNotEmpty) {
+    await prefs.setString(_keyToken, token);   
   }
+  } 
 
   static Future<Map<String, dynamic>?> getUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
