@@ -48,6 +48,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   // ── App state ─────────────────────────────────────────────────────────────
   _ScreenState _screenState = _ScreenState.phone;
   String _phoneNumber = '';
+  String _requestId = '';           // ← add this
   final List<String> _otp = List.filled(6, '');
   String _error = '';
   bool _loading = false;
@@ -273,47 +274,141 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   }
 
   // ── Phone submit ──────────────────────────────────────────────────────────
-  Future<void> _handlePhoneSubmit() async {
-    if (_phoneNumber.length < 10) {
-      setState(() => _error = 'Please enter a valid 10-digit mobile number');
-      return;
-    }
-    setState(() {
-      _error = '';
-      _loading = true;
-    });
-    try {
-      final result = await ApiService.sendOtp(_phoneNumber);
-      debugPrint('DEBUG OTP → ${result['otp'] ?? result['data']?['otp'] ?? 'not returned by server'}');
-      debugPrint('DEBUG full result: $result');
-      if (result['success'] == true) {
-        _switchTo(_ScreenState.otp);
-      } else {
-        setState(() => _error = result['message'] ?? 'Failed to send OTP');
-      }
-    } catch (e) {
-      setState(() => _error = 'Failed to send OTP. Please try again.');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+Future<void> _handlePhoneSubmit() async {
+  if (_phoneNumber.length < 10) {
+    setState(() => _error = 'Please enter a valid 10-digit mobile number');
+    return;
   }
+  setState(() { _error = ''; _loading = true; });
+  try {
+    final result = await ApiService.sendOtp(_phoneNumber);
+    debugPrint('DEBUG OTP → $result'); // ← already have this
 
-  // ── Resend OTP ────────────────────────────────────────────────────────────
-  Future<void> _handleResendOtp() async {
-    if (!_canResend) return;
-    _startCountdown();
-    setState(() => _loading = true);
-    try {
-      final result = await ApiService.sendOtp(_phoneNumber);
-      if (result['success'] != true) {
-        setState(() => _error = result['message'] ?? 'Failed to resend OTP');
-      }
-    } catch (e) {
-      setState(() => _error = 'Failed to resend OTP.');
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    final statusCode = result['statusCode'] as int? ?? 0;
+    final serverMessage = result['message']?.toString() ?? 'Something went wrong.';
+
+    if (result['success'] == true && statusCode == 200) {
+      _requestId = result['data']?['request_id']?.toString() ?? '';
+      _switchTo(_ScreenState.otp);
+    } else if (statusCode == 400) {
+      setState(() => _error = serverMessage); // ← real reason, not hardcoded
+    } else if (statusCode == 429) {
+      _showRateLimitDialog();
+    } else {
+      setState(() => _error = serverMessage); // ← real reason, not hardcoded
     }
+  } catch (e) {
+    debugPrint('DEBUG OTP ERROR → $e');
+    setState(() => _error = 'Service unavailable. Please try again later.');
+  } finally {
+    if (mounted) setState(() => _loading = false);
   }
+}
+
+Future<void> _handleResendOtp() async {
+  if (!_canResend) return;
+  _startCountdown();
+  setState(() => _loading = true);
+  try {
+    final result = await ApiService.sendOtp(_phoneNumber);
+    debugPrint('DEBUG RESEND OTP → $result'); // ← logs resend too
+
+    final statusCode = result['statusCode'] as int? ?? 0;
+    final serverMessage = result['message']?.toString() ?? 'Something went wrong.';
+
+    if (result['success'] == true && statusCode == 200) {
+      _requestId = result['data']?['request_id']?.toString() ?? '';
+    } else if (statusCode == 429) {
+      _countdownTimer?.cancel();
+      setState(() => _canResend = false);
+      _showRateLimitDialog();
+    } else {
+      setState(() => _error = serverMessage); // ← real reason, not hardcoded
+    }
+  } catch (e) {
+    debugPrint('DEBUG RESEND OTP ERROR → $e');
+    setState(() => _error = 'Service unavailable. Please try again later.');
+  } finally {
+    if (mounted) setState(() => _loading = false);
+  }
+}
+void _showRateLimitDialog() {
+  int secondsLeft = 300;
+  Timer? dialogTimer;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          dialogTimer ??= Timer.periodic(const Duration(seconds: 1), (t) {
+            if (!mounted) { t.cancel(); return; }
+            if (secondsLeft <= 1) {
+              t.cancel();
+              Navigator.of(ctx).pop();
+            } else {
+              setDialogState(() => secondsLeft--);
+            }
+          });
+
+          final minutes = (secondsLeft ~/ 60).toString().padLeft(2, '0');
+          final seconds = (secondsLeft % 60).toString().padLeft(2, '0');
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.timer_outlined, color: Color(0xFFEF4444)),
+                SizedBox(width: 8),
+                Text('Too Many Attempts'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'You have made too many OTP requests. '
+                  'Please wait before trying again.',
+                  style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$minutes:$seconds',
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFEF4444),
+                      letterSpacing: 4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: null,
+                child: Text(
+                  'Please wait ($minutes:$seconds)',
+                  style: const TextStyle(color: Color(0xFF94A3B8)),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  ).then((_) => dialogTimer?.cancel());
+}
 
   // ── OTP digit change ──────────────────────────────────────────────────────
   Future<void> _handleOtpChange(String val, int idx) async {
@@ -351,7 +446,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
 Future<void> _verifyOtp(String enteredOtp) async {
     setState(() => _loading = true);
     try {
-      final result = await ApiService.verifyOtp(_phoneNumber, enteredOtp);
+      final result = await ApiService.verifyOtp(_phoneNumber, enteredOtp, _requestId);
 
       if (result['success'] == true) {
         // Save session & token

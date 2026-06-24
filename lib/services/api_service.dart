@@ -22,6 +22,7 @@ class ApiConstants {
     static const String servicesBaseUrl =
         'http://192.168.1.16/backend/services';
     static const String razorpayKey = 'rzp_test_R7xzyaqsmw9C9O';
+    static const String newAuthBaseUrl = 'http://192.168.1.16:3000';
 
 }
 
@@ -32,28 +33,45 @@ class ApiService {
 
   
   static Future<Map<String, dynamic>> sendOtp(String phoneNumber) async {
+  //   final response = await http.post(
+  //     Uri.parse(
+  //         '${ApiConstants.otpBaseUrl}/new_otp2.php?action=send_otp'),
+  //     headers: _headers,
+  //     body: jsonEncode({'phone_number': phoneNumber}),
+  //   );
+  //   return jsonDecode(response.body);
+  // }
     final response = await http.post(
-      Uri.parse(
-          '${ApiConstants.otpBaseUrl}/new_otp2.php?action=send_otp'),
-      headers: _headers,
-      body: jsonEncode({'phone_number': phoneNumber}),
-    );
-    return jsonDecode(response.body);
-  }
+    Uri.parse('http://192.168.1.16:3000/api/v2/mobile/auth/otp/send'),
+    headers: _headers,
+    body: jsonEncode({
+      'phone': phoneNumber,
+      'purpose': 'LOGIN', 
+    }),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
 
-  static Future<Map<String, dynamic>> verifyOtp(
-      String phoneNumber, String otp) async {
-    final response = await http.post(
-      Uri.parse(
-          '${ApiConstants.otpBaseUrl}/new_otp2.php?action=verify_otp'),
-      headers: _headers,
-      body: jsonEncode({
-        'phone_number': phoneNumber,
-        'otp': otp,
-      }),
-    );
-    return jsonDecode(response.body);
-  }
+ static Future<Map<String, dynamic>> verifyOtp(
+    String phoneNumber, String otp, [String requestId = '']) async {
+  debugPrint('DEBUG VERIFY OTP → phone: $phoneNumber | otp: $otp | request_id: $requestId');
+  
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/otp/verify'),
+    headers: _headers,
+    body: jsonEncode({
+      'phone': phoneNumber,
+      'otp': otp,
+      if (requestId.isNotEmpty) 'request_id': requestId,
+    }),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  debugPrint('DEBUG VERIFY OTP RESPONSE → $data');
+  return data;
+}
  
   static Future<Map<String, dynamic>> resetMpin(
       String phoneNumber, String newMpin) async {

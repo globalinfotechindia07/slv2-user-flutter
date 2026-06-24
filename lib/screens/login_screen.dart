@@ -50,7 +50,8 @@ Future<void> _getVerificationCode() async {
   setState(() { _loading = true; _error = ''; });
   try {
     final result = await ApiService.sendOtp(_phoneController.text);
-    debugPrint('DEBUG OTP → ${result['otp'] ?? result['data']?['otp'] ?? 'not returned by server'}');
+    // debugPrint('DEBUG OTP → ${result['otp'] ?? result['data']?['otp'] ?? 'not returned by server'}');
+    debugPrint('DEBUG OTP → ${result}');
     if (!mounted) return;
     if (result['success'] == true) {
       Navigator.push(
