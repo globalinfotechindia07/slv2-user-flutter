@@ -282,7 +282,7 @@ Future<void> _handlePhoneSubmit() async {
   setState(() { _error = ''; _loading = true; });
   try {
     final result = await ApiService.sendOtp(_phoneNumber);
-    debugPrint('DEBUG OTP → $result'); // ← already have this
+    debugPrint('DEBUG OTP → $result'); 
 
     final statusCode = result['statusCode'] as int? ?? 0;
     final serverMessage = result['message']?.toString() ?? 'Something went wrong.';
@@ -291,11 +291,11 @@ Future<void> _handlePhoneSubmit() async {
       _requestId = result['data']?['request_id']?.toString() ?? '';
       _switchTo(_ScreenState.otp);
     } else if (statusCode == 400) {
-      setState(() => _error = serverMessage); // ← real reason, not hardcoded
+      setState(() => _error = serverMessage); 
     } else if (statusCode == 429) {
       _showRateLimitDialog();
     } else {
-      setState(() => _error = serverMessage); // ← real reason, not hardcoded
+      setState(() => _error = serverMessage); 
     }
   } catch (e) {
     debugPrint('DEBUG OTP ERROR → $e');
@@ -311,7 +311,7 @@ Future<void> _handleResendOtp() async {
   setState(() => _loading = true);
   try {
     final result = await ApiService.sendOtp(_phoneNumber);
-    debugPrint('DEBUG RESEND OTP → $result'); // ← logs resend too
+    debugPrint('DEBUG RESEND OTP → $result'); 
 
     final statusCode = result['statusCode'] as int? ?? 0;
     final serverMessage = result['message']?.toString() ?? 'Something went wrong.';
@@ -323,7 +323,7 @@ Future<void> _handleResendOtp() async {
       setState(() => _canResend = false);
       _showRateLimitDialog();
     } else {
-      setState(() => _error = serverMessage); // ← real reason, not hardcoded
+      setState(() => _error = serverMessage); 
     }
   } catch (e) {
     debugPrint('DEBUG RESEND OTP ERROR → $e');
