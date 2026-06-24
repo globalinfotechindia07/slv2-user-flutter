@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../screens/home_screen.dart';
 import '../screens/Forgot_mpin_screen.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 //  MpinScreen
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,33 +57,33 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
     CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut),
   );
 
-  // ── Blob animation — animate-blob 20s infinite ───────────────────────────
-  late final AnimationController _blobCtrl = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 20),
-  )..repeat();
+  // // ── Blob animation — animate-blob 20s infinite ───────────────────────────
+  // late final AnimationController _blobCtrl = AnimationController(
+  //   vsync: this,
+  //   duration: const Duration(seconds: 20),
+  // )..repeat();
 
   // Piecewise keyframes matching @keyframes blob exactly:
   // 0%→(0,0)s1  25%→(20,-50)s1.1  50%→(-20,20)s0.9  75%→(50,50)s0.95  100%→(0,0)s1
-  static Offset _blobOffset(double t) {
-    const List<Offset> positions = [
-      Offset(0, 0),
-      Offset(20, -50),
-      Offset(-20, 20),
-      Offset(50, 50),
-      Offset(0, 0),
-    ];
-    final seg = (t * 4).floor().clamp(0, 3);
-    final lt = (t * 4) - seg;
-    return Offset.lerp(positions[seg], positions[seg + 1], lt)!;
-  }
+  // static Offset _blobOffset(double t) {
+  //   const List<Offset> positions = [
+  //     Offset(0, 0),
+  //     Offset(20, -50),
+  //     Offset(-20, 20),
+  //     Offset(50, 50),
+  //     Offset(0, 0),
+  //   ];
+  //   final seg = (t * 4).floor().clamp(0, 3);
+  //   final lt = (t * 4) - seg;
+  //   return Offset.lerp(positions[seg], positions[seg + 1], lt)!;
+  // }
 
-  static double _blobScale(double t) {
-    const List<double> scales = [1.0, 1.1, 0.9, 0.95, 1.0];
-    final seg = (t * 4).floor().clamp(0, 3);
-    final lt = (t * 4) - seg;
-    return scales[seg] + (scales[seg + 1] - scales[seg]) * lt;
-  }
+  // static double _blobScale(double t) {
+  //   const List<double> scales = [1.0, 1.1, 0.9, 0.95, 1.0];
+  //   final seg = (t * 4).floor().clamp(0, 3);
+  //   final lt = (t * 4) - seg;
+  //   return scales[seg] + (scales[seg + 1] - scales[seg]) * lt;
+  // }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   @override
@@ -100,7 +101,7 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
   void dispose() {
     _shakeCtrl.dispose();
     _fadeCtrl.dispose();
-    _blobCtrl.dispose();
+    // _blobCtrl.dispose();
     for (final c in _controllers) c.dispose();
     for (final f in _focusNodes) f.dispose();
     super.dispose();
@@ -249,9 +250,9 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFFFFF1F2), // red-50
+                  AppColors.iconBgRed,   // 0xFFFFEBEE ≈ red-50
                   Colors.white,
-                  Color(0xFFEFF6FF), // blue-50
+                  AppColors.iconBgBlue,  // 0xFFE3F2FD ≈ blue-50
                 ],
               ),
             ),
@@ -261,59 +262,59 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
           Positioned.fill(child: CustomPaint(painter: _GridPainter())),
 
           // ── Red blob — -right-40 top-20 w-96 h-96 opacity-30 blur-3xl ────
-          AnimatedBuilder(
-            animation: _blobCtrl,
-            builder: (_, __) {
-              final off = _blobOffset(_blobCtrl.value);
-              final scale = _blobScale(_blobCtrl.value);
-              return Positioned(
-                right: -160 + off.dx,
-                top: 80 + off.dy,
-                child: Transform.scale(
-                  scale: scale,
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                    child: Container(
-                      width: 384,
-                      height: 384,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFFFECACA).withOpacity(0.30),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          // AnimatedBuilder(
+          //   animation: _blobCtrl,
+          //   builder: (_, __) {
+          //     final off = _blobOffset(_blobCtrl.value);
+          //     final scale = _blobScale(_blobCtrl.value);
+          //     return Positioned(
+          //       right: -160 + off.dx,
+          //       top: 80 + off.dy,
+          //       child: Transform.scale(
+          //         scale: scale,
+          //         child: ImageFiltered(
+          //           imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+          //           child: Container(
+          //             width: 384,
+          //             height: 384,
+          //             decoration: BoxDecoration(
+          //               shape: BoxShape.circle,
+          //               color: const Color(0xFFFECACA).withOpacity(0.30),
+          //             ),
+          //           ),
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
 
           // ── Blue blob — -left-40 bottom-20 animation-delay-2000 blur-3xl ─
-          AnimatedBuilder(
-            animation: _blobCtrl,
-            builder: (_, __) {
-              final t = (_blobCtrl.value + 0.10) % 1.0;
-              final off = _blobOffset(t);
-              final scale = _blobScale(t);
-              return Positioned(
-                left: -160 + off.dx,
-                bottom: 80 + off.dy,
-                child: Transform.scale(
-                  scale: scale,
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                    child: Container(
-                      width: 384,
-                      height: 384,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFFBFDBFE).withOpacity(0.30),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          // AnimatedBuilder(
+          //   animation: _blobCtrl,
+          //   builder: (_, __) {
+          //     final t = (_blobCtrl.value + 0.10) % 1.0;
+          //     final off = _blobOffset(t);
+          //     final scale = _blobScale(t);
+          //     return Positioned(
+          //       left: -160 + off.dx,
+          //       bottom: 80 + off.dy,
+          //       child: Transform.scale(
+          //         scale: scale,
+          //         child: ImageFiltered(
+          //           imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+          //           child: Container(
+          //             width: 384,
+          //             height: 384,
+          //             decoration: BoxDecoration(
+          //               shape: BoxShape.circle,
+          //               color: const Color(0xFFBFDBFE).withOpacity(0.30),
+          //             ),
+          //           ),
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
 
           // ── Main layout — max-w-lg mx-auto flex flex-col px-4 ─────────────
           SafeArea(
@@ -353,7 +354,7 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
                                     child: const Icon(
                                       Icons.account_balance,
                                       size: 20,
-                                      color: Color(0xFFDC2626),
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                 ),
@@ -363,7 +364,7 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
                               const Text(
                                 'Shubh',
                                 style: TextStyle(
-                                  color: Color(0xFFDC2626),
+                                  color: AppColors.primary,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
                                 ),
@@ -372,7 +373,7 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
                               const Text(
                                 'Labh',
                                 style: TextStyle(
-                                  color: Color(0xFF2563EB),
+                                  color: AppColors.accent,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
                                 ),
@@ -432,7 +433,7 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
                                       child: const Icon(
                                         Icons.lock_outline,
                                         size: 48,
-                                        color: Color(0xFF3B82F6),
+                                        color: AppColors.accent,
                                       ),
                                     ),
 
@@ -513,7 +514,7 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
                                         height: 24,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          color: Color(0xFF3B82F6),
+                                          color: AppColors.accent,
                                         ),
                                       ),
                                     ],
@@ -574,7 +575,7 @@ class _ForgotMpinButtonState extends State<_ForgotMpinButton> {
               borderRadius: BorderRadius.circular(6), // rounded-md
               border: _focused
                   ? Border.all(
-                      color: const Color(0xFFBFDBFE), width: 2) // focus:ring-blue-200
+                      color: AppColors.accent.withOpacity(0.3), width: 2) // focus:ring-blue-200
                   : Border.all(color: Colors.transparent, width: 2),
             ),
             child: Text(
@@ -582,12 +583,12 @@ class _ForgotMpinButtonState extends State<_ForgotMpinButton> {
               style: TextStyle(
                 fontSize: 14,
                 color: _hovered
-                    ? const Color(0xFF1E40AF) // hover:text-blue-800
-                    : const Color(0xFF2563EB), // text-blue-600
+                    ? AppColors.secondary     // deep navy on hover
+                    : AppColors.accent,
                 decoration: TextDecoration.underline,
                 decorationColor: _hovered
-                    ? const Color(0xFF1E40AF)
-                    : const Color(0xFF2563EB),
+                    ? AppColors.secondary
+                    : AppColors.accent,
               ),
             ),
           ),
@@ -622,7 +623,7 @@ class _MpinBox extends StatelessWidget {
     final borderColor = hasError
         ? const Color(0xFFEF4444)  // border-red-500
         : isFocused
-            ? const Color(0xFF3B82F6) // focus:border-blue-500
+            ? AppColors.accent // focus:border-blue-500
             : const Color(0xFFE2E8F0); // default border
 
     return AnimatedContainer(
@@ -642,8 +643,8 @@ class _MpinBox extends StatelessWidget {
           ),
           // focus:ring-4 focus:ring-blue-100
           if (isFocused)
-            const BoxShadow(
-              color: Color(0xFFDBEAFE), // blue-100
+            BoxShadow(
+              color: AppColors.accent.withOpacity(0.15),
               blurRadius: 0,
               spreadRadius: 4,
             ),

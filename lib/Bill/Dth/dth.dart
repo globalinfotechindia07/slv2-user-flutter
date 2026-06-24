@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_theme.dart';
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
@@ -129,9 +130,9 @@ class _DthScreenState extends State<DthScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFFFFF1F2),
+                  AppColors.iconBgRed,
                   Colors.white,
-                  Color(0xFFEFF6FF),
+                  AppColors.iconBgBlue,
                 ],
               ),
             ),
@@ -153,7 +154,7 @@ class _DthScreenState extends State<DthScreen> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF0F172A),
+                        color: AppColors.textDark,
                       ),
                     ),
                   ),
@@ -195,14 +196,14 @@ class _DthScreenState extends State<DthScreen> {
             onTap: () => Navigator.pop(context),
             child: const Row(
               children: [
-                Icon(Icons.arrow_back, size: 16, color: Color(0xFF475569)),
+                Icon(Icons.arrow_back, size: 16, color: AppColors.textGrey),
                 SizedBox(width: 6),
                 Text(
                   'Back',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF475569),
+                    color: AppColors.textGrey,
                   ),
                 ),
               ],
@@ -215,7 +216,7 @@ class _DthScreenState extends State<DthScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF0F172A),
+              color: AppColors.textDark,
             ),
           ),
 
@@ -223,7 +224,7 @@ class _DthScreenState extends State<DthScreen> {
           GestureDetector(
             onTap: () => setState(() => _isFaqOpen = true),
             child: const Icon(Icons.help_outline,
-                size: 24, color: Color(0xFF475569)),
+                size: 24, color: AppColors.textGrey),
           ),
         ],
       ),
@@ -345,7 +346,7 @@ class _OperatorCard extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF0F172A),
+                color: AppColors.textDark,
               ),
             ),
           ],
@@ -460,7 +461,7 @@ class _FaqSidebar extends StatelessWidget {
                           GestureDetector(
                             onTap: onClose,
                             child: const Icon(Icons.close,
-                                size: 24, color: Color(0xFF475569)),
+                                size: 24, color: AppColors.textGrey),
                           ),
                         ],
                       ),
@@ -488,7 +489,7 @@ class _FaqSidebar extends StatelessWidget {
                                       faq['a']!,
                                       style: const TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFF475569),
+                                        color: AppColors.textGrey,
                                       ),
                                     ),
                                   ),

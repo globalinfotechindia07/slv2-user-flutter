@@ -69,7 +69,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       return Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(
-            primary: Color(0xFFDC2626),
+            primary: AppColors.primary,
           ),
         ),
         child: child!,
@@ -187,7 +187,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       SnackBar(
         content: Text(message),
         backgroundColor:
-            success ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+            success ? const Color(0xFF16A34A) : AppColors.primary,
       ),
     );
   }
@@ -240,9 +240,9 @@ void _submit() {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFFFFF1F2),
+                  AppColors.iconBgRed,
                   Colors.white,
-                  Color(0xFFEFF6FF),
+                  AppColors.iconBgBlue,
                 ],
               ),
             ),
@@ -266,14 +266,14 @@ void _submit() {
                         child: Row(
                           children: const [
                             Icon(Icons.arrow_back,
-                                size: 16, color: Color(0xFF475569)),
+                                size: 16, color: AppColors.textGrey),
                             SizedBox(width: 6),
                             Text(
                               'Back',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Color(0xFF475569),
+                                color: AppColors.textGrey,
                               ),
                             ),
                           ],
@@ -304,7 +304,7 @@ void _submit() {
                                 TextSpan(
                                   text: 'Shubh',
                                   style: TextStyle(
-                                    color: Color(0xFFDC2626),
+                                    color: AppColors.primary,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 16,
                                   ),
@@ -312,7 +312,7 @@ void _submit() {
                                 TextSpan(
                                   text: 'Labh',
                                   style: TextStyle(
-                                    color: Color(0xFF2563EB),
+                                    color: AppColors.accent,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 16,
                                   ),
@@ -368,7 +368,7 @@ void _submit() {
                               child: const Icon(
                                 Icons.person_outline,
                                 size: 48,
-                                color: Color(0xFFDC2626),
+                                color: AppColors.primary,
                               ),
                             ),
 
@@ -379,7 +379,7 @@ void _submit() {
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F172A),
+                                color: AppColors.textDark,
                               ),
                             ),
 
@@ -390,7 +390,7 @@ void _submit() {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF475569),
+                                color: AppColors.textGrey,
                               ),
                             ),
 
@@ -480,7 +480,7 @@ void _submit() {
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                      color: Color(0xFFDC2626), width: 2),
+                                      color: AppColors.primary, width: 2),
                                 ),
                                 errorBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -636,7 +636,7 @@ void _submit() {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
-              const BorderSide(color: Color(0xFFDC2626), width: 2),
+              const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -692,7 +692,7 @@ void _submit() {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide:
-                  const BorderSide(color: Color(0xFFDC2626), width: 2),
+                  const BorderSide(color: AppColors.primary, width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -732,7 +732,7 @@ void _submit() {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFDC2626),
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: isSending
@@ -896,7 +896,7 @@ class _OtpBottomSheetState extends State<_OtpBottomSheet> {
                       color: _error.isNotEmpty
                           ? const Color(0xFFEF4444)
                           : _focus[i].hasFocus
-                              ? const Color(0xFF3B82F6)
+                              ? AppColors.accent
                               : const Color(0xFFE2E8F0),
                       width: 2,
                     ),
@@ -935,7 +935,7 @@ class _OtpBottomSheetState extends State<_OtpBottomSheet> {
                     child: const Text('Resend OTP',
                         style: TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF2563EB),
+                            color: AppColors.accent,
                             fontWeight: FontWeight.w500)),
                   )
                 : Text('Resend in ${_timeLeft}s',
@@ -947,7 +947,7 @@ class _OtpBottomSheetState extends State<_OtpBottomSheet> {
               child: ElevatedButton(
                 onPressed: _loading ? null : _verify,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDC2626),
+                  backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
@@ -1004,12 +1004,12 @@ class _ContinueButtonState extends State<_ContinueButton> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: _pressed
-              ? const Color(0xFFB91C1C)
-              : const Color(0xFFDC2626),
+              ? AppColors.primary.withOpacity(0.85)
+              : AppColors.primary,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFDC2626).withOpacity(0.30),
+              color: AppColors.primary.withOpacity(0.30),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

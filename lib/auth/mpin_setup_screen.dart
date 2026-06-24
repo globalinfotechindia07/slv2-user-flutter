@@ -89,32 +89,32 @@ class _MpinSetupScreenState extends State<MpinSetupScreen>
     duration: const Duration(milliseconds: 600),
   );
 
-  // FIX 1 ── Blob animation controller (animate-blob 20s infinite)
-  late final AnimationController _blobCtrl = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 20),
-  )..repeat();
+  // // FIX 1 ── Blob animation controller (animate-blob 20s infinite)
+  // late final AnimationController _blobCtrl = AnimationController(
+  //   vsync: this,
+  //   duration: const Duration(seconds: 20),
+  // )..repeat();
 
   // Blob keyframe helpers — same as MpinScreen
-  static Offset _blobOffset(double t) {
-    const List<Offset> positions = [
-      Offset(0, 0),
-      Offset(20, -50),
-      Offset(-20, 20),
-      Offset(50, 50),
-      Offset(0, 0),
-    ];
-    final segment = (t * 4).floor().clamp(0, 3);
-    final localT = (t * 4) - segment;
-    return Offset.lerp(positions[segment], positions[segment + 1], localT)!;
-  }
+  // static Offset _blobOffset(double t) {
+  //   const List<Offset> positions = [
+  //     Offset(0, 0),
+  //     Offset(20, -50),
+  //     Offset(-20, 20),
+  //     Offset(50, 50),
+  //     Offset(0, 0),
+  //   ];
+  //   final segment = (t * 4).floor().clamp(0, 3);
+  //   final localT = (t * 4) - segment;
+  //   return Offset.lerp(positions[segment], positions[segment + 1], localT)!;
+  // }
 
-  static double _blobScale(double t) {
-    const List<double> scales = [1.0, 1.1, 0.9, 0.95, 1.0];
-    final segment = (t * 4).floor().clamp(0, 3);
-    final localT = (t * 4) - segment;
-    return scales[segment] + (scales[segment + 1] - scales[segment]) * localT;
-  }
+  // static double _blobScale(double t) {
+  //   const List<double> scales = [1.0, 1.1, 0.9, 0.95, 1.0];
+  //   final segment = (t * 4).floor().clamp(0, 3);
+  //   final localT = (t * 4) - segment;
+  //   return scales[segment] + (scales[segment + 1] - scales[segment]) * localT;
+  // }
 
   @override
   void initState() {
@@ -135,7 +135,7 @@ class _MpinSetupScreenState extends State<MpinSetupScreen>
     _dot1Ctrl.dispose();
     _dot2Ctrl.dispose();
     _dot3Ctrl.dispose();
-    _blobCtrl.dispose(); // FIX 1
+    // _blobCtrl.dispose(); // FIX 1
     for (final c in [..._setupCtrl, ..._confirmCtrl]) c.dispose();
     for (final f in [..._setupFocus, ..._confirmFocus]) f.dispose();
     super.dispose();
@@ -321,9 +321,9 @@ class _MpinSetupScreenState extends State<MpinSetupScreen>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFFFFF1F2), // red-50
+                  AppColors.iconBgRed,
                   Colors.white,
-                  Color(0xFFEFF6FF), // blue-50
+                  AppColors.iconBgBlue,
                 ],
               ),
             ),
@@ -332,57 +332,57 @@ class _MpinSetupScreenState extends State<MpinSetupScreen>
           // ── Grid pattern ───────────────────────────────────────────────
           Positioned.fill(child: CustomPaint(painter: _GridPainter())),
 
-          // FIX 1 ── Red blob — absolute -right-40 top-20
-          AnimatedBuilder(
-            animation: _blobCtrl,
-            builder: (_, __) {
-              final t = _blobCtrl.value;
-              final off = _blobOffset(t);
-              final scale = _blobScale(t);
-              return Positioned(
-                right: -160 + off.dx,
-                top: 80 + off.dy,
-                child: Transform.scale(
-                  scale: scale,
-                  child: Container(
-                    width: 384,
-                    height: 384,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color:
-                          const Color(0xFFFECACA).withOpacity(0.30), // red-100
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          // // FIX 1 ── Red blob — absolute -right-40 top-20
+          // AnimatedBuilder(
+          //   animation: _blobCtrl,
+          //   builder: (_, __) {
+          //     final t = _blobCtrl.value;
+          //     final off = _blobOffset(t);
+          //     final scale = _blobScale(t);
+          //     return Positioned(
+          //       right: -160 + off.dx,
+          //       top: 80 + off.dy,
+          //       child: Transform.scale(
+          //         scale: scale,
+          //         child: Container(
+          //           width: 384,
+          //           height: 384,
+          //           decoration: BoxDecoration(
+          //             shape: BoxShape.circle,
+          //             color:
+          //                 const Color(0xFFFECACA).withOpacity(0.30), // red-100
+          //           ),
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
 
           // FIX 1 ── Blue blob — absolute -left-40 bottom-20 (2s delay = +0.10)
-          AnimatedBuilder(
-            animation: _blobCtrl,
-            builder: (_, __) {
-              final t = (_blobCtrl.value + 0.10) % 1.0;
-              final off = _blobOffset(t);
-              final scale = _blobScale(t);
-              return Positioned(
-                left: -160 + off.dx,
-                bottom: 80 + off.dy,
-                child: Transform.scale(
-                  scale: scale,
-                  child: Container(
-                    width: 384,
-                    height: 384,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFBFDBFE)
-                          .withOpacity(0.30), // blue-100
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          // AnimatedBuilder(
+          //   animation: _blobCtrl,
+          //   builder: (_, __) {
+          //     final t = (_blobCtrl.value + 0.10) % 1.0;
+          //     final off = _blobOffset(t);
+          //     final scale = _blobScale(t);
+          //     return Positioned(
+          //       left: -160 + off.dx,
+          //       bottom: 80 + off.dy,
+          //       child: Transform.scale(
+          //         scale: scale,
+          //         child: Container(
+          //           width: 384,
+          //           height: 384,
+          //           decoration: BoxDecoration(
+          //             shape: BoxShape.circle,
+          //             color: const Color(0xFFBFDBFE)
+          //                 .withOpacity(0.30), // blue-100
+          //           ),
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
 
           // ── Main layout ────────────────────────────────────────────────
           SafeArea(
@@ -441,7 +441,7 @@ class _MpinSetupScreenState extends State<MpinSetupScreen>
                                           ? Icons.key_rounded
                                           : Icons.lock_outline,
                                       size: 48,
-                                      color: const Color(0xFF3B82F6),
+                                      color: AppColors.accent,
                                     ),
                                   ),
 
@@ -468,7 +468,7 @@ class _MpinSetupScreenState extends State<MpinSetupScreen>
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       fontSize: 14,
-                                      color: Color(0xFF475569),
+                                      color: AppColors.textGrey,
                                     ),
                                   ),
 
@@ -514,7 +514,7 @@ class _MpinSetupScreenState extends State<MpinSetupScreen>
                                       height: 24,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: Color(0xFF3B82F6),
+                                        color: AppColors.accent,
                                       ),
                                     ),
                                   ],
@@ -553,14 +553,14 @@ class _Header extends StatelessWidget {
             child: Row(
               children: const [
                 Icon(Icons.arrow_back_ios_new,
-                    size: 14, color: Color(0xFF475569)),
+                    size: 14, color: AppColors.textGrey),
                 SizedBox(width: 6),
                 Text(
                   'Back',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF475569),
+                    color: AppColors.textGrey,
                   ),
                 ),
               ],
@@ -586,7 +586,7 @@ class _Header extends StatelessWidget {
                 child: const Icon(
                   Icons.account_balance,
                   size: 20,
-                  color: Color(0xFFDC2626),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(width: 8),
@@ -596,7 +596,7 @@ class _Header extends StatelessWidget {
                     TextSpan(
                       text: 'Shubh',
                       style: TextStyle(
-                        color: Color(0xFFDC2626),
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                       ),
@@ -604,7 +604,7 @@ class _Header extends StatelessWidget {
                     TextSpan(
                       text: ' Labh',
                       style: TextStyle(
-                        color: Color(0xFF2563EB),
+                        color: AppColors.accent,
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                       ),
@@ -645,7 +645,7 @@ class _MpinBox extends StatelessWidget {
     final borderColor = hasError
         ? const Color(0xFFEF4444)
         : isFocused
-            ? const Color(0xFF3B82F6)
+            ? AppColors.accent
             : const Color(0xFFE2E8F0);
 
     return Container(
@@ -665,7 +665,7 @@ class _MpinBox extends StatelessWidget {
           // FIX 6 ── focus:ring-4 focus:ring-blue-100 outer glow
           if (isFocused)
             BoxShadow(
-              color: const Color(0xFF3B82F6).withOpacity(0.20),
+              color: AppColors.accent.withOpacity(0.20),
               blurRadius: 0,
               spreadRadius: 4,
             ),
@@ -800,7 +800,7 @@ class _SuccessView extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF475569),
+            color: AppColors.textGrey,
           ),
         ),
 
@@ -859,7 +859,7 @@ class _ErrorBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: AppColors.iconBgRed,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -872,7 +872,7 @@ class _ErrorBox extends StatelessWidget {
               message,
               style: const TextStyle(
                 fontSize: 14,
-                color: Color(0xFFDC2626),
+                color: AppColors.primary,
               ),
             ),
           ),

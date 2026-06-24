@@ -19,6 +19,7 @@ import 'Bill/Dth/DthPayPage.dart';
 import 'Bill/Electricity/Electricity.dart';
 import 'Bill/Electricity/ElectricityDetails.dart';
 import 'Bill/Electricity/ElectricityPayPage.dart';
+import 'screens/loan_service_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -117,6 +118,16 @@ class ShubhLabhApp extends StatelessWidget {
                 builder: (_) => SelectEmiPlanScreen(
                   loanDetails: args['loanDetails'] as Map<String, dynamic>? ?? {},
                   userProfile: args['userProfile'] as Map<String, dynamic>? ?? {},
+                ),
+              );
+            case '/app/loanServiceScreen':
+              final args = settings.arguments as Map<String, dynamic>? ?? {};
+              return MaterialPageRoute(
+                builder: (_) => MobileLoanFormScreen(
+                  serviceDetails: ServiceDetails(
+                    psTitle: args['pstitle']?.toString(),
+                    psLcategory: args['psLcategory']?.toString(),
+                  ),
                 ),
               );
             case '/app/dth-recharge/details':

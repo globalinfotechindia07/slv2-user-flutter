@@ -19,6 +19,7 @@ import 'dart:async';
 import '../screens/loan_details_screen.dart';
 import '../screens/other_loan_service_details.dart';
 import '../Dashboard/FAQSidebar.dart';
+import '../screens/loan_service_screen.dart';
 
 IconData getIconFromString(String iconName) {
   const Map<String, IconData> iconMap = {
@@ -385,7 +386,7 @@ class _FeaturedSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Column(
         children: [
           Row(
@@ -516,7 +517,7 @@ class _BillPaymentsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Column(
         children: [
           Row(
@@ -667,9 +668,11 @@ void _handleServiceTap(BuildContext context, Map<String, dynamic> service) {
         '/app/otherLoanServiceDetails',
         arguments: {
           ...service,
-          '_userId': widget.userId,  // merge userId into args
+          '_userId': widget.userId,
         },
       );
+    } else if (source == 'application') {
+      Navigator.pushNamed(context, '/app/loanServiceScreen', arguments: service);
     } else {
       Navigator.pushNamed(context, '/app/loans', arguments: service);
     }
@@ -877,6 +880,8 @@ class _BankingSectionState extends State<_BankingSection> {
         '/app/otherLoanServiceDetails',
         arguments: service,
       );
+    } else if (source == 'application') {
+      Navigator.pushNamed(context, '/app/loanServiceScreen', arguments: service);
     } else {
       Navigator.pushNamed(context, '/app/loanServices', arguments: service);
     }
@@ -885,7 +890,7 @@ class _BankingSectionState extends State<_BankingSection> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1002,6 +1007,8 @@ class _InvestmentSectionState extends State<_InvestmentSection> {
         '/app/otherLoanServiceDetails',
         arguments: service,
       );
+    } else if (source == 'application') {
+      Navigator.pushNamed(context, '/app/loanServiceScreen', arguments: service);
     } else {
       Navigator.pushNamed(context, '/app/loanServices', arguments: service);
     }
@@ -1010,7 +1017,7 @@ class _InvestmentSectionState extends State<_InvestmentSection> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1126,7 +1133,7 @@ class _InsuranceSectionState extends State<_InsuranceSection> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1217,8 +1224,9 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
   List<dynamic> _loans = [];
   String? _error;
 
+  static const int _kMultiplier = 1000;
   int _currentIndex = 0;
-  final PageController _pageController = PageController();
+  late PageController _pageController;
   Timer? _autoScrollTimer;
 
   @override
@@ -1240,11 +1248,17 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
     print('MyLoans response: $response');
     print('userId used: ${widget.userId}');
     if (response['success'] == 1) {
+        final loans = response['loanApplications'] ?? [];
         setState(() {
-          _loans = response['loanApplications'] ?? [];
+          _loans = loans;
           _loading = false;
         });
-        if (_loans.length > 1) _startAutoScroll();
+        if (_loans.length > 1) {
+          _pageController = PageController(initialPage: _loans.length * _kMultiplier);
+          _startAutoScroll();
+        } else {
+          _pageController = PageController();
+        }
       } else {
         setState(() {
           _loans = [];
@@ -1269,17 +1283,15 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
   }
 
   void _startAutoScroll() {
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (!mounted || _loans.isEmpty) return;
-      final next = (_currentIndex + 1) % _loans.length;
-      _pageController.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    });
-  }
+  _autoScrollTimer?.cancel();
+  _autoScrollTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    if (!mounted || _loans.isEmpty) return;
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+  });
+}
 
   void _pauseAndResume() {
     _autoScrollTimer?.cancel();
@@ -1309,7 +1321,7 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
   Widget build(BuildContext context) {
     // FIX 2: Outer white card wrapper with shadow — matches Banking/Investment/Insurance sections
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1432,13 +1444,13 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
           child: PageView.builder(
             controller: _pageController,
             physics: const BouncingScrollPhysics(),
-            itemCount: _loans.length,
+            itemCount: _loans.length * _kMultiplier * 2,
             onPageChanged: (i) {
-              setState(() => _currentIndex = i);
+              setState(() => _currentIndex = i % _loans.length);
               _pauseAndResume();
             },
             itemBuilder: (context, index) {
-              final loan = _loans[index];
+              final loan = _loans[index % _loans.length];
               final status = (loan['status'] ?? 'pending').toString();
               final statusColor = _statusColor(status);
 

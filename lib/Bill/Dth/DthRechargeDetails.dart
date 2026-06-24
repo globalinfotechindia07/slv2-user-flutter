@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────
 // Reusable InputField widget  (mirrors React's InputField component)
@@ -62,7 +63,7 @@ class InputField extends StatelessWidget {
               borderSide: BorderSide(
                 color: hasError
                     ? const Color(0xFFEF4444)
-                    : const Color(0xFFEF4444),
+                    : AppColors.primary,
                 width: 2,
               ),
             ),
@@ -192,13 +193,13 @@ class FAQSidebar extends StatelessWidget {
                                       style: const TextStyle(
                                         fontSize: 17,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF0F172A),
+                                        color: AppColors.textDark,
                                       ),
                                     ),
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.close,
-                                        color: Color(0xFF475569)),
+                                        color: AppColors.textGrey),
                                     onPressed: onClose,
                                   ),
                                 ],
@@ -270,13 +271,13 @@ class _FAQItemState extends State<_FAQItem> {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
+                      color: AppColors.textDark,
                     ),
                   ),
                 ),
                 Icon(
                   _expanded ? Icons.expand_less : Icons.expand_more,
-                  color: const Color(0xFF64748B),
+                  color: AppColors.textGrey,
                 ),
               ],
             ),
@@ -286,7 +287,7 @@ class _FAQItemState extends State<_FAQItem> {
                 widget.answer,
                 style: const TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF475569),
+                  color: AppColors.textGrey,
                   height: 1.5,
                 ),
               ),
@@ -383,9 +384,9 @@ class _DthRechargeDetailsState extends State<DthRechargeDetails> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFFFFF1F2), // red-50
+                  AppColors.iconBgRed,
                   Colors.white,
-                  Color(0xFFEFF6FF), // blue-50
+                  AppColors.iconBgBlue,
                 ],
                 stops: [0.0, 0.5, 1.0],
               ),
@@ -469,14 +470,14 @@ class _DthRechargeDetailsState extends State<DthRechargeDetails> {
               child: Row(
                 children: const [
                   Icon(Icons.arrow_back,
-                      size: 18, color: Color(0xFF475569)),
+                      size: 18, color: AppColors.textGrey),
                   SizedBox(width: 6),
                   Text(
                     'Back',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF475569),
+                      color: AppColors.textGrey,
                     ),
                   ),
                 ],
@@ -493,7 +494,7 @@ class _DthRechargeDetailsState extends State<DthRechargeDetails> {
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.textDark,
                   ),
                 ),
               ),
@@ -509,7 +510,7 @@ class _DthRechargeDetailsState extends State<DthRechargeDetails> {
                   color: Colors.transparent,
                 ),
                 child: const Icon(Icons.help_outline,
-                    size: 24, color: Color(0xFF475569)),
+                    size: 24, color: AppColors.textGrey),
               ),
             ),
           ],
@@ -523,7 +524,7 @@ class _DthRechargeDetailsState extends State<DthRechargeDetails> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF), // blue-50
+        color: AppColors.iconBgBlue, // blue-50
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Text(
@@ -545,9 +546,8 @@ class _DthRechargeDetailsState extends State<DthRechargeDetails> {
       child: ElevatedButton(
         onPressed: _loading ? null : _handleContinue,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFDC2626), // red-600
-          disabledBackgroundColor:
-              const Color(0xFFDC2626).withOpacity(0.6),
+          backgroundColor: AppColors.primary,
+          disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

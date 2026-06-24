@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../../theme/app_theme.dart';
 // ─────────────────────────────────────────────
 // Route arguments model
 // ─────────────────────────────────────────────
@@ -77,7 +77,7 @@ class InputField extends StatelessWidget {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(
-                color: Color(0xFFEF4444),
+                color: AppColors.primary,
                 width: 2,
               ),
             ),
@@ -120,7 +120,7 @@ class InputField extends StatelessWidget {
           'Please enter your valid $label.',
           style: const TextStyle(
             fontSize: 11,
-            color: Color(0xFF2563EB),
+            color: AppColors.accent,
           ),
         ),
       ],
@@ -292,9 +292,9 @@ class _ElectricityDetailsState extends State<ElectricityDetails> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFFFFF1F2), // red-50
+                  AppColors.iconBgRed,
                   Colors.white,
-                  Color(0xFFEFF6FF), // blue-50
+                  AppColors.iconBgBlue,
                 ],
                 stops: [0.0, 0.5, 1.0],
               ),
@@ -417,14 +417,14 @@ class _ElectricityDetailsState extends State<ElectricityDetails> {
             child: const Row(
               children: [
                 Icon(Icons.arrow_back,
-                    size: 18, color: Color(0xFF475569)),
+                    size: 18, color: AppColors.textGrey),
                 SizedBox(width: 6),
                 Text(
                   'Back',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF475569),
+                    color: AppColors.textGrey,
                   ),
                 ),
               ],
@@ -443,7 +443,7 @@ class _ElectricityDetailsState extends State<ElectricityDetails> {
                 style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF0F172A),
+                  color: AppColors.textDark,
                 ),
               ),
             ),
@@ -455,7 +455,7 @@ class _ElectricityDetailsState extends State<ElectricityDetails> {
             child: Container(
               padding: const EdgeInsets.all(8),
               child: const Icon(Icons.help_outline,
-                  size: 24, color: Color(0xFF475569)),
+                  size: 24, color: AppColors.textGrey),
             ),
           ),
         ],
@@ -477,9 +477,8 @@ class _ElectricityDetailsState extends State<ElectricityDetails> {
         child: ElevatedButton(
           onPressed: _loading ? null : _handleContinue,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFDC2626),
-            disabledBackgroundColor:
-                const Color(0xFFDC2626).withOpacity(0.6),
+            backgroundColor: AppColors.primary,
+            disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -568,13 +567,13 @@ class _FaqSidebar extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF0F172A),
+                              color: AppColors.textDark,
                             ),
                           ),
                           GestureDetector(
                             onTap: onClose,
                             child: const Icon(Icons.close,
-                                size: 24, color: Color(0xFF475569)),
+                                size: 24, color: AppColors.textGrey),
                           ),
                         ],
                       ),
@@ -592,7 +591,7 @@ class _FaqSidebar extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF1E293B),
+                                    color: AppColors.textDark,
                                   ),
                                 ),
                                 children: [
@@ -603,7 +602,7 @@ class _FaqSidebar extends StatelessWidget {
                                       faq['a']!,
                                       style: const TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFF475569),
+                                        color: AppColors.textGrey,
                                         height: 1.5,
                                       ),
                                     ),

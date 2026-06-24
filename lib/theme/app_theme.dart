@@ -46,3 +46,15 @@ class AppTheme {
         ),
       );
 }
+
+class AppGradients {
+  static const LinearGradient homeBackground = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0xFFFFF1F2),
+      Colors.white,
+      Color(0xFFEFF6FF),
+    ],
+  );
+}

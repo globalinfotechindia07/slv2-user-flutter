@@ -89,10 +89,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   ).animate(CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut));
 
   // ── Blob ──────────────────────────────────────────────────────────────────
-  late final AnimationController _blobCtrl = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 20),
-  )..repeat();
+  // late final AnimationController _blobCtrl = AnimationController(
+  //   vsync: this,
+  //   duration: const Duration(seconds: 20),
+  // )..repeat();
 
   // ── Verified checkmark bounce ─────────────────────────────────────────────
   late final AnimationController _bounceController = AnimationController(
@@ -125,25 +125,25 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       .animate(CurvedAnimation(parent: _dot3Controller, curve: Curves.easeInOut));
 
   // ── Blob maths ────────────────────────────────────────────────────────────
-  static Offset _blobOffset(double t) {
-    const List<Offset> pos = [
-      Offset(0, 0),
-      Offset(20, -50),
-      Offset(-20, 20),
-      Offset(50, 50),
-      Offset(0, 0),
-    ];
-    final seg = (t * 4).floor().clamp(0, 3);
-    final lt = (t * 4) - seg;
-    return Offset.lerp(pos[seg], pos[seg + 1], lt)!;
-  }
+  // static Offset _blobOffset(double t) {
+  //   const List<Offset> pos = [
+  //     Offset(0, 0),
+  //     Offset(20, -50),
+  //     Offset(-20, 20),
+  //     Offset(50, 50),
+  //     Offset(0, 0),
+  //   ];
+  //   final seg = (t * 4).floor().clamp(0, 3);
+  //   final lt = (t * 4) - seg;
+  //   return Offset.lerp(pos[seg], pos[seg + 1], lt)!;
+  // }
 
-  static double _blobScale(double t) {
-    const List<double> sc = [1.0, 1.1, 0.9, 0.95, 1.0];
-    final seg = (t * 4).floor().clamp(0, 3);
-    final lt = (t * 4) - seg;
-    return sc[seg] + (sc[seg + 1] - sc[seg]) * lt;
-  }
+  // static double _blobScale(double t) {
+  //   const List<double> sc = [1.0, 1.1, 0.9, 0.95, 1.0];
+  //   final seg = (t * 4).floor().clamp(0, 3);
+  //   final lt = (t * 4) - seg;
+  //   return sc[seg] + (sc[seg + 1] - sc[seg]) * lt;
+  // }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   @override
@@ -168,7 +168,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     _countdownTimer?.cancel();
     _shakeCtrl.dispose();
     _fadeCtrl.dispose();
-    _blobCtrl.dispose();
+    // _blobCtrl.dispose();
     _bounceController.dispose();
     _dot1Controller.dispose();
     _dot2Controller.dispose();
@@ -428,9 +428,9 @@ Future<void> _verifyOtp(String enteredOtp) async {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFFFFF1F2),
+                  AppColors.iconBgRed,
                   Colors.white,
-                  Color(0xFFEFF6FF),
+                  AppColors.iconBgBlue,
                 ],
               ),
             ),
@@ -440,59 +440,59 @@ Future<void> _verifyOtp(String enteredOtp) async {
           Positioned.fill(child: CustomPaint(painter: _GridPainter())),
 
           // Red blob — top-right
-          AnimatedBuilder(
-            animation: _blobCtrl,
-            builder: (_, __) {
-              final off = _blobOffset(_blobCtrl.value);
-              final sc = _blobScale(_blobCtrl.value);
-              return Positioned(
-                right: -160 + off.dx,
-                top: 80 + off.dy,
-                child: Transform.scale(
-                  scale: sc,
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 48, sigmaY: 48),
-                    child: Container(
-                      width: 384,
-                      height: 384,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFFFEE2E2).withOpacity(0.30),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          // AnimatedBuilder(
+          //   animation: _blobCtrl,
+          //   builder: (_, __) {
+          //     final off = _blobOffset(_blobCtrl.value);
+          //     final sc = _blobScale(_blobCtrl.value);
+          //     return Positioned(
+          //       right: -160 + off.dx,
+          //       top: 80 + off.dy,
+          //       child: Transform.scale(
+          //         scale: sc,
+          //         child: ImageFiltered(
+          //           imageFilter: ImageFilter.blur(sigmaX: 48, sigmaY: 48),
+          //           child: Container(
+          //             width: 384,
+          //             height: 384,
+          //             decoration: BoxDecoration(
+          //               shape: BoxShape.circle,
+          //               color: const Color(0xFFFEE2E2).withOpacity(0.30),
+          //             ),
+          //           ),
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
 
           // Blue blob — bottom-left
-          AnimatedBuilder(
-            animation: _blobCtrl,
-            builder: (_, __) {
-              final t = (_blobCtrl.value + 0.10) % 1.0;
-              final off = _blobOffset(t);
-              final sc = _blobScale(t);
-              return Positioned(
-                left: -160 + off.dx,
-                bottom: 80 + off.dy,
-                child: Transform.scale(
-                  scale: sc,
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 48, sigmaY: 48),
-                    child: Container(
-                      width: 384,
-                      height: 384,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFFDBEAFE).withOpacity(0.30),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          // AnimatedBuilder(
+          //   animation: _blobCtrl,
+          //   builder: (_, __) {
+          //     final t = (_blobCtrl.value + 0.10) % 1.0;
+          //     final off = _blobOffset(t);
+          //     final sc = _blobScale(t);
+          //     return Positioned(
+          //       left: -160 + off.dx,
+          //       bottom: 80 + off.dy,
+          //       child: Transform.scale(
+          //         scale: sc,
+          //         child: ImageFiltered(
+          //           imageFilter: ImageFilter.blur(sigmaX: 48, sigmaY: 48),
+          //           child: Container(
+          //             width: 384,
+          //             height: 384,
+          //             decoration: BoxDecoration(
+          //               shape: BoxShape.circle,
+          //               color: const Color(0xFFDBEAFE).withOpacity(0.30),
+          //             ),
+          //           ),
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
 
           // Main content
           SafeArea(
@@ -512,14 +512,14 @@ Future<void> _verifyOtp(String enteredOtp) async {
                             child: Row(
                               children: const [
                                 Icon(Icons.arrow_back,
-                                    size: 16, color: Color(0xFF475569)),
+                                    size: 16, color: AppColors.textGrey),
                                 SizedBox(width: 6),
                                 Text(
                                   'Back',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(0xFF475569),
+                                    color: AppColors.textGrey,
                                   ),
                                 ),
                               ],
@@ -663,7 +663,7 @@ Future<void> _verifyOtp(String enteredOtp) async {
         const Text(
           'Your trusted banking partner for a prosperous future',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFF475569), fontSize: 14),
+          style: TextStyle(color: AppColors.textGrey, fontSize: 14),
         ),
         const SizedBox(height: 28),
         Row(
@@ -722,7 +722,7 @@ Future<void> _verifyOtp(String enteredOtp) async {
           textAlign: TextAlign.center,
           text: TextSpan(
             style: const TextStyle(
-                fontSize: 14, color: Color(0xFF475569), height: 1.5),
+                fontSize: 14, color: AppColors.textGrey, height: 1.5),
             children: [
               const TextSpan(
                   text: 'Enter the 6-digit verification code sent to\n'),
@@ -793,7 +793,7 @@ Future<void> _verifyOtp(String enteredOtp) async {
           RichText(
             text: TextSpan(
               style:
-                  const TextStyle(fontSize: 14, color: Color(0xFF475569)),
+                  const TextStyle(fontSize: 14, color: AppColors.textGrey),
               children: [
                 const TextSpan(text: 'Request new code in '),
                 TextSpan(
@@ -886,7 +886,7 @@ Future<void> _verifyOtp(String enteredOtp) async {
         const SizedBox(height: 8),
         const Text(
           'Enter your mobile number to begin your secure banking journey',
-          style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
+          style: TextStyle(fontSize: 14, color: AppColors.textGrey),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),

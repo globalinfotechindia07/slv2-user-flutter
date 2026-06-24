@@ -44,7 +44,8 @@ class BannerCarousel extends StatefulWidget {
 }
 
 class _BannerCarouselState extends State<BannerCarousel> {
-  final PageController _pageController = PageController();
+  static const int _kMultiplier = 1000;
+  late PageController _pageController;
   int _currentIndex = 0;
   Timer? _timer;
 
@@ -67,11 +68,14 @@ class _BannerCarouselState extends State<BannerCarousel> {
       final response = await ApiService.listOffersCard();
       // React checks response.data.list
       final list = response['list'] as List<dynamic>? ?? [];
+      final offers = list.map((e) => OfferData.fromJson(e)).toList();
+      final initialPage = offers.length * _kMultiplier;
       setState(() {
-        _offers = list.map((e) => OfferData.fromJson(e)).toList();
+        _offers = offers;
         _loading = false;
+        _currentIndex = 0;
       });
-      // Start autoplay only after data is loaded — same as Swiper's behaviour
+      _pageController = PageController(initialPage: initialPage);
       _startTimer();
     } catch (e) {
       setState(() {
@@ -85,9 +89,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
   _timer?.cancel();
   _timer = Timer.periodic(const Duration(seconds: 3), (_) {
     if (!mounted || _offers.isEmpty) return;
-    final next = (_currentIndex + 1) % _offers.length;
-    _pageController.animateToPage(
-      next,
+    _pageController.nextPage(
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
     );
@@ -104,7 +106,7 @@ void _pauseAndResume() {
   @override
   void dispose() {
     _timer?.cancel();
-    _pageController.dispose();
+    if (_offers.isNotEmpty) _pageController.dispose();
     super.dispose();
   }
 
@@ -113,7 +115,7 @@ void _pauseAndResume() {
 
   Widget _buildSkeleton() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Container(
         height: 180,
         padding: const EdgeInsets.all(16),
@@ -144,7 +146,7 @@ void _pauseAndResume() {
 
   Widget _buildError() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Container(
         height: 180,
         padding: const EdgeInsets.all(16),
@@ -177,19 +179,19 @@ void _pauseAndResume() {
     if (_offers.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: SizedBox(
         height: 180,
         child: PageView.builder(
           controller: _pageController,
           physics: const BouncingScrollPhysics(),
-          itemCount: _offers.length,
+          itemCount: _offers.length * _kMultiplier * 2,
           onPageChanged: (i) {
-            setState(() => _currentIndex = i);
+            setState(() => _currentIndex = i % _offers.length);
             _pauseAndResume();
           },
           itemBuilder: (_, i) => _OfferCard(
-            offer: _offers[i],
+            offer: _offers[i % _offers.length],
             currentIndex: _currentIndex,
             totalCount: _offers.length,
           ),

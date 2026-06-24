@@ -48,8 +48,8 @@ class _ManageMPINScreenState extends State<ManageMPINScreen>
       List.generate(4, (_) => TextEditingController());
 
   // ── Animation Controllers ──────────────────────────────────────────────────
-  late AnimationController _blobController;
-  late Animation<double> _blobAnimation;
+  // late AnimationController _blobController;
+  // late Animation<double> _blobAnimation;
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
   late AnimationController _fadeUpController;
@@ -62,13 +62,13 @@ class _ManageMPINScreenState extends State<ManageMPINScreen>
     super.initState();
 
     // Blob animation
-    _blobController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    )..repeat(reverse: true);
-    _blobAnimation = Tween<double>(begin: 0.25, end: 0.40).animate(
-      CurvedAnimation(parent: _blobController, curve: Curves.easeInOut),
-    );
+    // _blobController = AnimationController(
+    //   vsync: this,
+    //   duration: const Duration(seconds: 20),
+    // )..repeat(reverse: true);
+    // _blobAnimation = Tween<double>(begin: 0.25, end: 0.40).animate(
+    //   CurvedAnimation(parent: _blobController, curve: Curves.easeInOut),
+    // );
 
     // Shake animation
     _shakeController = AnimationController(
@@ -105,7 +105,7 @@ class _ManageMPINScreenState extends State<ManageMPINScreen>
 
   @override
   void dispose() {
-    _blobController.dispose();
+    // _blobController.dispose();
     _shakeController.dispose();
     _fadeUpController.dispose();
     _successBounceController.dispose();
@@ -432,54 +432,21 @@ class _ManageMPINScreenState extends State<ManageMPINScreen>
   // ── Background ─────────────────────────────────────────────────────────────
 
   Widget _buildBackground() {
-    return AnimatedBuilder(
-      animation: _blobAnimation,
-      builder: (_, __) => Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFF1F2), // red-50
-              Colors.white,
-              Color(0xFFEFF6FF), // blue-50
-            ],
-          ),
-        ),
-        child: Stack(
-          children: [
-            CustomPaint(painter: _GridPainter(), size: Size.infinite),
-            Positioned(
-              right: -160,
-              top: 80,
-              child: Container(
-                width: 384,
-                height: 384,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFECACA)
-                      .withOpacity(_blobAnimation.value),
-                ),
-              ),
-            ),
-            Positioned(
-              left: -160,
-              bottom: 80,
-              child: Container(
-                width: 384,
-                height: 384,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFBFDBFE)
-                      .withOpacity(_blobAnimation.value),
-                ),
-              ),
-            ),
-          ],
-        ),
+  return Container(
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFFFFF1F2),
+          Colors.white,
+          Color(0xFFEFF6FF),
+        ],
       ),
-    );
-  }
+    ),
+    child: CustomPaint(painter: _GridPainter(), size: Size.infinite),
+  );
+}
 
   // ── Header ─────────────────────────────────────────────────────────────────
 

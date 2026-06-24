@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
 
 // ── Model — mirrors billInfo state ───────────────────────────────────────────
 
@@ -208,7 +209,7 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
               ? _billInfo!.cellNumber
               : widget.formData['main'] ?? '',
         },
-        'theme': {'color': '#EF4444'},
+        'theme': {'color': '#E53935'},
       };
 
       _razorpay.open(options);
@@ -519,7 +520,7 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
                         height: 64,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFFEF4444).withOpacity(0.20),
+                          color: AppColors.primary.withOpacity(0.20),
                         ),
                       ),
                     Container(
@@ -536,13 +537,13 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
                       ),
                       child: isError
                           ? const Icon(Icons.warning_amber_rounded,
-                              size: 40, color: Color(0xFFEF4444))
+                              size: 40, color: AppColors.primary)
                           : const SizedBox(
                               width: 40,
                               height: 40,
                               child: CircularProgressIndicator(
                                 strokeWidth: 3,
-                                color: Color(0xFFEF4444),
+                                color: AppColors.primary,
                               ),
                             ),
                     ),
@@ -555,7 +556,7 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.textDark,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -621,7 +622,7 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontSize: 15,
-                      color: Color(0xFF475569),
+                      color: AppColors.textGrey,
                       height: 1.5),
                 ),
                 const SizedBox(height: 24),
@@ -783,7 +784,7 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
                         fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF4444),
+                    backgroundColor: AppColors.primary,
                     disabledBackgroundColor:
                         const Color(0xFFD1D5DB),
                     foregroundColor: Colors.white,
@@ -821,13 +822,13 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
             child: const Row(
               children: [
                 Icon(Icons.arrow_back,
-                    size: 16, color: Color(0xFF475569)),
+                    size: 16, color: AppColors.textGrey),
                 SizedBox(width: 6),
                 Text('Back',
                     style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF475569))),
+                        color: AppColors.textGrey)),
               ],
             ),
           ),
@@ -836,7 +837,7 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF0F172A)),
+                color: AppColors.textDark),
           ),
           const SizedBox(width: 36),
         ],
@@ -871,7 +872,7 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444),
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.flash_on,
@@ -930,7 +931,7 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1D4ED8),
+                      color: AppColors.accent,
                     ),
                   ),
                 ),
@@ -989,7 +990,7 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFDC2626),
+                        color: AppColors.primary,
                       ),
                     ),
                 ],

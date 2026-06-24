@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import 'package:confetti/confetti.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import '../../theme/app_theme.dart';
 
 // const String _kApiBase = 'http://localhost/backend';
 // const String _razorpayKey =
@@ -391,7 +392,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
           'email': widget.userProfile['email'] ?? '',
           'name': widget.userProfile['name'] ?? '',
         },
-        'theme': {'color': '#EF4444'},
+        'theme': {'color': '#E53935'},
       };
 
       _razorpay.open(options);
@@ -497,12 +498,12 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
   Widget _renderOperatorIcon(String? name, String? category) {
     final n = (name ?? '').toLowerCase();
     if (category == 'DTH') {
-      return const Icon(Icons.tv, size: 24, color: Color(0xFFDC2626));
+      return const Icon(Icons.tv, size: 24, color: AppColors.primary);
     }
     if (n.contains('bsnl') || n.contains('mtnl')) {
-      return const Icon(Icons.radio, size: 24, color: Color(0xFFDC2626));
+      return const Icon(Icons.radio, size: 24, color: AppColors.primary);
     }
-    return const Icon(Icons.smartphone, size: 24, color: Color(0xFFDC2626));
+    return const Icon(Icons.smartphone, size: 24, color: AppColors.primary);
   }
 
   // ── Build ────────────────────────────────────────────────────────────
@@ -551,12 +552,12 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
             onTap: onBack ?? () => Navigator.pop(context),
             child: Row(
               children: [
-                const Icon(Icons.arrow_back, size: 16, color: Color(0xFF475569)),
+                const Icon(Icons.arrow_back, size: 16, color: AppColors.textGrey),
                 const SizedBox(width: 6),
                 Text(
                   backLabel,
                   style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF475569)),
+                      fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textGrey),
                 ),
               ],
             ),
@@ -564,12 +565,12 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
           Text(
             title,
             style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textDark),
           ),
           onHelp != null
               ? GestureDetector(
                   onTap: onHelp,
-                  child: const Icon(Icons.help_outline, size: 24, color: Color(0xFF475569)),
+                  child: const Icon(Icons.help_outline, size: 24, color: AppColors.textGrey),
                 )
               : const SizedBox(width: 24),
         ],
@@ -589,7 +590,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFFFF1F2), Colors.white, Color(0xFFEFF6FF)],
+                colors: [AppColors.iconBgRed, Colors.white, AppColors.iconBgBlue],
               ),
             ),
           ),
@@ -610,12 +611,12 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                         const Text(
                           'Mobile Recharge',
                           style: TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                              fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.textDark),
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           'Enter your details to recharge your mobile instantly.',
-                          style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                          style: TextStyle(fontSize: 13, color: AppColors.textGrey),
                         ),
                         const SizedBox(height: 20),
                         Stack(
@@ -638,7 +639,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: const Color(0xFFEF4444)),
+                                      strokeWidth: 2, color: AppColors.primary),
                                 ),
                               ),
                           ],
@@ -680,10 +681,10 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                const Icon(Icons.error_outline, size: 14, color: Color(0xFFEF4444)),
+                                const Icon(Icons.error_outline, size: 14, color: AppColors.primary),
                                 const SizedBox(width: 4),
                                 Text(_errors['operator']!,
-                                    style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444))),
+                                    style: const TextStyle(fontSize: 12, color: AppColors.primary)),
                               ],
                             ),
                           ],
@@ -721,7 +722,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                         child: ElevatedButton(
                           onPressed: _handleContinue,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2563EB),
+                            backgroundColor: AppColors.accent,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
@@ -774,7 +775,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFFFF1F2), Colors.white, Color(0xFFEFF6FF)],
+                colors: [AppColors.iconBgRed, Colors.white, AppColors.iconBgBlue],
               ),
             ),
           ),
@@ -805,7 +806,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                             children: [
                               Text(_mobileCtrl.text,
                                   style: const TextStyle(
-                                      fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF0F172A))),
+                                      fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
                               Text('${_selectedOperator?.name ?? ''} • $_circle',
                                   style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                             ],
@@ -819,7 +820,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                         }),
                         child: const Text('Edit',
                             style: TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFFDC2626))),
+                                fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.primary)),
                       ),
                     ],
                   ),
@@ -841,7 +842,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                           borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 2)),
                       focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFDC2626), width: 2)),
+                          borderSide: const BorderSide(color: AppColors.primary, width: 2)),
                     ),
                   ),
                 ),
@@ -869,7 +870,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                         if (_loadingPlans)
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 32),
-                            child: Center(child: CircularProgressIndicator(color: Color(0xFFEF4444))),
+                            child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
                           )
                         else if (_plans == null)
                           const SizedBox.shrink()
@@ -949,7 +950,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFFFF1F2), Colors.white, Color(0xFFEFF6FF)],
+                colors: [AppColors.iconBgRed, Colors.white, AppColors.iconBgBlue],
               ),
             ),
           ),
@@ -977,7 +978,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                         children: [
                           Text(_mobileCtrl.text,
                               style: const TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF0F172A))),
+                                  fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
                           Text('${_selectedOperator?.name ?? ''} • $_circle',
                               style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                         ],
@@ -1022,7 +1023,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                                           style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w500,
-                                              color: Color(0xFFDC2626))),
+                                              color: AppColors.primary)),
                                     ),
                                   ],
                                 ),
@@ -1031,7 +1032,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                                   _selectedPlan!.desc,
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                                  style: const TextStyle(fontSize: 13, color: AppColors.textGrey),
                                 ),
                               ],
                             ),
@@ -1049,7 +1050,7 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
                     child: ElevatedButton(
                       onPressed: _loading ? null : _handleRazorpayPayment,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFDC2626),
+                        backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -1146,7 +1147,7 @@ class _InputField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFDC2626), width: 2),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
           ),
         ),
@@ -1154,9 +1155,9 @@ class _InputField extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.error_outline, size: 14, color: Color(0xFFEF4444)),
+              const Icon(Icons.error_outline, size: 14, color: AppColors.primary),
               const SizedBox(width: 4),
-              Text(error!, style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444))),
+              Text(error!, style: const TextStyle(fontSize: 12, color: AppColors.primary)),
             ],
           ),
         ],
@@ -1208,7 +1209,7 @@ class _SelectFieldPopup extends StatelessWidget {
                     itemBuilder: (_, i) => ListTile(
                       title: Text(options[i]),
                       trailing: options[i] == value
-                          ? const Icon(Icons.check, color: Color(0xFFDC2626))
+                          ? const Icon(Icons.check, color: AppColors.primary)
                           : null,
                       onTap: () => Navigator.pop(ctx, options[i]),
                     ),
@@ -1263,9 +1264,9 @@ class _SelectFieldPopup extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.error_outline, size: 14, color: Color(0xFFEF4444)),
+              const Icon(Icons.error_outline, size: 14, color: AppColors.primary),
               const SizedBox(width: 4),
-              Text(error!, style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444))),
+              Text(error!, style: const TextStyle(fontSize: 12, color: AppColors.primary)),
             ],
           ),
         ],
@@ -1343,10 +1344,10 @@ class _OperatorCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFEF2F2) : Colors.white,
+          color: isSelected ? AppColors.iconBgRed : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFFEF4444) : const Color(0xFFE2E8F0),
+            color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -1364,7 +1365,7 @@ class _OperatorCard extends StatelessWidget {
                 children: [
                   Text(operator.name,
                       style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF0F172A))),
+                          fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
                   Text(operator.category,
                       style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                 ],
@@ -1374,7 +1375,7 @@ class _OperatorCard extends StatelessWidget {
               Container(
                 width: 20,
                 height: 20,
-                decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
                 child: const Icon(Icons.check, size: 12, color: Colors.white),
               ),
           ],
@@ -1401,7 +1402,7 @@ class _TabButton extends StatelessWidget {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFFEF4444) : Colors.transparent,
+          color: active ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         alignment: Alignment.center,
@@ -1448,7 +1449,7 @@ class _PlanCard extends StatelessWidget {
                 children: [
                   Text('₹${plan.rs}',
                       style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                          fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textDark)),
                   const SizedBox(width: 8),
                   Text('Valid for ${plan.validity}',
                       style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
@@ -1463,13 +1464,13 @@ class _PlanCard extends StatelessWidget {
             plan.desc,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+            style: const TextStyle(fontSize: 13, color: AppColors.textGrey),
           ),
           const SizedBox(height: 8),
           GestureDetector(
             onTap: onViewDetails,
             child: const Text('View Details',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFFDC2626))),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.primary)),
           ),
         ],
       ),
@@ -1521,7 +1522,7 @@ class _PlanDetailsOverlay extends StatelessWidget {
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       GestureDetector(
                         onTap: onClose,
-                        child: const Icon(Icons.close, size: 20, color: Color(0xFF475569)),
+                        child: const Icon(Icons.close, size: 20, color: AppColors.textGrey),
                       ),
                     ],
                   ),
@@ -1566,7 +1567,7 @@ class _PlanDetailsOverlay extends StatelessWidget {
                               const Text('Description',
                                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                               const SizedBox(height: 6),
-                              Text(p.desc, style: const TextStyle(fontSize: 13, color: Color(0xFF475569))),
+                              Text(p.desc, style: const TextStyle(fontSize: 13, color: AppColors.textGrey)),
                             ],
                           ),
                         ),
@@ -1649,7 +1650,7 @@ class _PlanDetailsOverlay extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () => onProceed(p),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFDC2626),
+                        backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -1713,7 +1714,7 @@ class _ProcessingScreen extends StatelessWidget {
                             ],
                           ),
                           child: isError
-                              ? const Icon(Icons.error_outline, size: 48, color: Color(0xFFEF4444))
+                              ? const Icon(Icons.error_outline, size: 48, color: AppColors.primary)
                               : const SizedBox(
                                   width: 48,
                                   height: 48,
@@ -1727,7 +1728,7 @@ class _ProcessingScreen extends StatelessWidget {
                       message,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                          fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.textDark),
                     ),
                     const SizedBox(height: 6),
                     const Text('Please wait while we process your recharge',
@@ -1806,7 +1807,7 @@ class _Step extends StatelessWidget {
           child: complete
               ? const Icon(Icons.check, size: 18, color: Colors.white)
               : Text('$number',
-                  style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w600)),
+                  style: const TextStyle(color: AppColors.textGrey, fontWeight: FontWeight.w600)),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -1815,7 +1816,7 @@ class _Step extends StatelessWidget {
             children: [
               Text(title,
                   style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF0F172A))),
+                      fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textDark)),
               const SizedBox(height: 2),
               Text(description, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
             ],
@@ -1875,7 +1876,7 @@ class _SuccessScreenState extends State<_SuccessScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFFFF1F2), Colors.white, Color(0xFFEFF6FF)],
+                colors: [AppColors.iconBgRed, Colors.white, AppColors.iconBgBlue],
               ),
             ),
           ),
@@ -1913,12 +1914,12 @@ class _SuccessScreenState extends State<_SuccessScreen> {
                   const SizedBox(height: 24),
                   const Text('Recharge Successful!',
                       style: TextStyle(
-                          fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                          fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textDark)),
                   const SizedBox(height: 10),
                   Text(
                     widget.message ?? 'Your mobile recharge was completed successfully.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 15, color: Color(0xFF475569), height: 1.4),
+                    style: const TextStyle(fontSize: 15, color: AppColors.textGrey, height: 1.4),
                   ),
                   const SizedBox(height: 28),
                   Container(
@@ -1965,7 +1966,7 @@ class _SuccessScreenState extends State<_SuccessScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                       ),
                       child: const Text('Share Receipt',
-                          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600)),
+                          style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w600)),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -2086,7 +2087,7 @@ class _FaqSidebar extends StatelessWidget {
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                           GestureDetector(
                             onTap: onClose,
-                            child: const Icon(Icons.close, size: 24, color: Color(0xFF475569)),
+                            child: const Icon(Icons.close, size: 24, color: AppColors.textGrey),
                           ),
                         ],
                       ),
@@ -2105,7 +2106,7 @@ class _FaqSidebar extends StatelessWidget {
                                       padding: const EdgeInsets.only(bottom: 8),
                                       child: Text(faq['a']!,
                                           style:
-                                              const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                                              const TextStyle(fontSize: 12, color: AppColors.textGrey)),
                                     ),
                                   ],
                                 ))

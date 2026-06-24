@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
@@ -192,8 +193,8 @@ class _DthPayScreenState extends State<DthPayScreen> {
               ? _info!.mobile
               : widget.subscriberId,
         },
-        'theme': {'color': '#EF4444'},
-      };
+        'theme': {'color': '#E53935'},      
+        };
 
       _razorpay.open(options);
     } catch (e) {
@@ -297,7 +298,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF1F2), Colors.white, Color(0xFFEFF6FF)],
+            colors: [AppColors.iconBgRed, Colors.white, AppColors.iconBgBlue],
           ),
         ),
         child: SafeArea(
@@ -423,7 +424,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF1F2), Colors.white, Color(0xFFEFF6FF)],
+            colors: [AppColors.iconBgRed, Colors.white, AppColors.iconBgBlue],
           ),
         ),
         child: const Center(
@@ -467,7 +468,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF1F2), Colors.white, Color(0xFFEFF6FF)],
+            colors: [AppColors.iconBgRed, Colors.white, AppColors.iconBgBlue],
           ),
         ),
         child: Center(
@@ -486,7 +487,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
                         height: 64,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFFEF4444).withOpacity(0.20),
+                          color: AppColors.primary.withOpacity(0.20),
                         ),
                       ),
                     Container(
@@ -523,7 +524,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.textDark,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -549,7 +550,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF1F2), Colors.white, Color(0xFFEFF6FF)],
+            colors: [AppColors.iconBgRed, Colors.white, AppColors.iconBgBlue],
           ),
         ),
         child: SafeArea(
@@ -586,7 +587,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
                       'Your DTH recharge was completed successfully.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      fontSize: 15, color: Color(0xFF475569), height: 1.5),
+                      fontSize: 15, color: AppColors.textGrey, height: 1.5),
                 ),
                 const SizedBox(height: 24),
                 // Summary card
@@ -669,7 +670,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFFFF1F2), Colors.white, Color(0xFFEFF6FF)],
+                colors: [AppColors.iconBgRed, Colors.white, AppColors.iconBgBlue],
               ),
             ),
           ),
@@ -693,13 +694,13 @@ class _DthPayScreenState extends State<DthPayScreen> {
                         child: const Row(
                           children: [
                             Icon(Icons.arrow_back,
-                                size: 16, color: Color(0xFF475569)),
+                                size: 16, color: AppColors.textGrey),
                             SizedBox(width: 6),
                             Text('Back',
                                 style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(0xFF475569))),
+                                    color: AppColors.textGrey)),
                           ],
                         ),
                       ),
@@ -708,7 +709,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF0F172A)),
+                            color: AppColors.textDark),
                       ),
                       const SizedBox(width: 36),
                     ],
@@ -781,7 +782,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
                         fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF4444),
+                    backgroundColor: AppColors.primary,
                     disabledBackgroundColor: const Color(0xFFD1D5DB),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -821,7 +822,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444),
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.tv, size: 20, color: Colors.white),
@@ -869,7 +870,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
             children: [
               Expanded(
                 child: _InfoTile(
-                    label: 'Balance', value: '₹${info.balance}', valueColor: const Color(0xFFDC2626)),
+                    label: 'Balance', value: '₹${info.balance}', valueColor: AppColors.primary),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -945,9 +946,8 @@ class _DthPayScreenState extends State<DthPayScreen> {
                       const BorderSide(color: Color(0xFFE5E7EB), width: 2)),
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xFFEF4444), width: 2)),
-            ),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+            ),  // closes InputDecoration
           ),
           const SizedBox(height: 12),
           // Quick amount chips — grid-cols-4
@@ -967,14 +967,10 @@ class _DthPayScreenState extends State<DthPayScreen> {
                       duration: const Duration(milliseconds: 150),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFFFEF2F2)
-                            : Colors.white,
+                        color: isSelected ? AppColors.iconBgRed : Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSelected
-                              ? const Color(0xFFEF4444)
-                              : const Color(0xFFE5E7EB),
+                          color: isSelected ? AppColors.primary : const Color(0xFFE5E7EB),
                         ),
                       ),
                       child: Text(
@@ -983,10 +979,7 @@ class _DthPayScreenState extends State<DthPayScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isSelected
-                              ? const Color(0xFFDC2626)
-                              : const Color(0xFF4B5563),
-                        ),
+                          color: isSelected ? AppColors.primary : const Color(0xFF4B5563),                        ),
                       ),
                     ),
                   ),

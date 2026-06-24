@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../services/api_service.dart';
 import '../../../services/auth_service.dart';
+import '../../../theme/app_theme.dart';
 
 // ─── FormSection Widget ────────────────────────────────────────────────────────
 
@@ -212,16 +213,15 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>{
   String _profileImage = '';
   bool _loading = false;
   String _error = '';
   UserInfo _userInfo = const UserInfo();
 
   // Blob animation controllers
-  late AnimationController _blobController;
-  late Animation<double> _blobAnimation;
+  // late AnimationController _blobController;
+  // late Animation<double> _blobAnimation;
 
   // [ADDED] Allowed image extensions — mirrors React's validTypes list
   static const List<String> _allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
@@ -232,21 +232,21 @@ class _ProfileScreenState extends State<ProfileScreen>
     debugPrint('DEBUG ProfileScreen userProfile: ${widget.userProfile}');
     debugPrint('DEBUG ProfileScreen id: ${widget.userProfile['id']}');
 
-    _blobController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 8),
-    )..repeat(reverse: true);
+    // _blobController = AnimationController(
+    //   vsync: this,
+    //   duration: const Duration(seconds: 8),
+    // )..repeat(reverse: true);
 
-    _blobAnimation = Tween<double>(begin: 0.25, end: 0.40).animate(
-      CurvedAnimation(parent: _blobController, curve: Curves.easeInOut),
-    );
+    // _blobAnimation = Tween<double>(begin: 0.25, end: 0.40).animate(
+    //   CurvedAnimation(parent: _blobController, curve: Curves.easeInOut),
+    // );
 
     _fetchUserData();
   }
 
   @override
   void dispose() {
-    _blobController.dispose();
+    // _blobController.dispose();
     super.dispose();
   }
 
@@ -421,59 +421,24 @@ Future<void> _handleImageChange() async {
   // ── Background with animated blobs ────────────────────────────────────────
 
   Widget _buildBackground() {
-    return AnimatedBuilder(
-      animation: _blobAnimation,
-      builder: (context, child) {
-        return Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFFFF1F2),
-                Colors.white,
-                Color(0xFFEFF6FF),
-              ],
-            ),
-          ),
-          child: Stack(
-            children: [
-              CustomPaint(
-                painter: _GridPainter(),
-                size: Size.infinite,
-              ),
-              Positioned(
-                right: -160,
-                top: 80,
-                child: Container(
-                  width: 384,
-                  height: 384,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFFFECACA)
-                        .withOpacity(_blobAnimation.value),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: -160,
-                bottom: 80,
-                child: Container(
-                  width: 384,
-                  height: 384,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFFBFDBFE)
-                        .withOpacity(_blobAnimation.value),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  return Container(
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFFFFF1F2),
+          Colors.white,
+          Color(0xFFEFF6FF),
+        ],
+      ),
+    ),
+    child: CustomPaint(
+      painter: _GridPainter(),
+      size: Size.infinite,
+    ),
+  );
+}
 
   // ── Sticky Header ──────────────────────────────────────────────────────────
 

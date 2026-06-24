@@ -4,7 +4,7 @@ import '../screens/about_screen.dart';
 import '../Dashboard/ReferFriend.dart';
 import '../Dashboard/Profile/profile_screen.dart';
 import '../Dashboard/ManageMpin.dart';
-
+import '../screens/support_screen.dart';
 // ─── Menu Item Model ──────── ──────────────────────────────────────────────────
 
 class _MenuItem {
@@ -195,8 +195,10 @@ Future<void> _fetchUserData() async {
         break;
 
       case '/app/support':
-        // Add your support screen here when ready
-        break;
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => SupportScreen(),
+        ));
+  break;
     }
   }
 
@@ -261,8 +263,8 @@ Future<void> _fetchUserData() async {
                                 onTap: () => _handleItemClick(item),
                               )),
                           const SizedBox(height: 16),
-                          // Security banner
-                          const _SecurityBanner(),
+                          // // Security banner
+                          // const _SecurityBanner(),
                         ],
                       ),
                     ),
@@ -437,54 +439,54 @@ class _MenuTile extends StatelessWidget {
 // ─── Security Banner ──────────────────────────────────────────────────────────
 /// Mirrors React's <SecurityBanner> component
 
-class _SecurityBanner extends StatelessWidget {
-  const _SecurityBanner({Key? key}) : super(key: key);
+// class _SecurityBanner extends StatelessWidget {
+//   const _SecurityBanner({Key? key}) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.security,
-                size: 16, color: Color(0xFF16A34A)),
-          ),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Secure & Encrypted',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF166534),
-                  ),
-                ),
-                Text(
-                  'Your data is protected with 256-bit encryption',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Color(0xFF15803D),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Container(
+//       padding: const EdgeInsets.all(12),
+//       decoration: BoxDecoration(
+//         color: const Color(0xFFF0FDF4),
+//         borderRadius: BorderRadius.circular(12),
+//         border: Border.all(color: const Color(0xFFBBF7D0)),
+//       ),
+//       child: Row(
+//         children: [
+//           Container(
+//             padding: const EdgeInsets.all(6),
+//             decoration: BoxDecoration(
+//               color: const Color(0xFFDCFCE7),
+//               borderRadius: BorderRadius.circular(8),
+//             ),
+//             child: const Icon(Icons.security,
+//                 size: 16, color: Color(0xFF16A34A)),
+//           ),
+//           // const SizedBox(width: 10),
+//           // const Expanded(
+//           //   child: Column(
+//           //     crossAxisAlignment: CrossAxisAlignment.start,
+//           //     children: [
+//           //       Text(
+//           //         'Secure & Encrypted',
+//           //         style: TextStyle(
+//           //           fontSize: 12,
+//           //           fontWeight: FontWeight.w600,
+//           //           color: Color(0xFF166534),
+//           //         ),
+//           //       ),
+//           //       Text(
+//           //         'Your data is protected with 256-bit encryption',
+//           //         style: TextStyle(
+//           //           fontSize: 10,
+//           //           color: Color(0xFF15803D),
+//           //         ),
+//           //       ),
+//           //     ],
+//           //   ),
+//           // ),
+//         ],
+//       ),
+//     );
+//   }
+// }
