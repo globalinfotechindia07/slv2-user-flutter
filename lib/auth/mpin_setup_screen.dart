@@ -6,24 +6,7 @@ import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../screens/home_screen.dart';
 import '../auth/mpin_screen.dart';
-
-// ── MPIN Setup Screen — matches React MPINSetup.jsx exactly ──────────────────
-// Steps:
-//   'setup'   — enter new 4-digit MPIN
-//   'confirm' — re-enter to confirm
-//   'success' — green checkmark + bouncing dots, then auto-navigate
-//
-// Fixes applied vs original Flutter file:
-//   1  Blob animations (red top-right, blue bottom-left with 2s phase offset)
-//   2  3-step flow: setup → confirm → success (single set of 4 boxes)
-//   3  Auto-advance to confirm when setup boxes are all filled (no button)
-//   4  Controller sync: controllers[idx].text = sanitized before read
-//   5  Backspace wired via KeyboardListener in every MPIN box
-//   6  Focus ring glow: spreadRadius:4 blue shadow on focused box
-//   7  Success screen: three staggered bouncing dots
-//   8  Header logo (Landmark icon + Shubh/Labh) on right side
-//   9  registerUser API call using widget.profileData + mpin
-//  10  Icon switches: KeyRound (setup) → Lock (confirm)
+import '../services/auth_service.dart';
 
 class MpinSetupScreen extends StatefulWidget {
   final String phone;
@@ -234,7 +217,8 @@ class _MpinSetupScreenState extends State<MpinSetupScreen>
         'mpin': originalMpin,
       };
 
-      final response = await ApiService.registerUser(userData);
+      final tempToken = await AuthService.getTempToken() ?? '';
+      final response = await ApiService.registerUser(userData, tempToken: tempToken);
       final success = response['success'] == true;
 
       if (!success) {

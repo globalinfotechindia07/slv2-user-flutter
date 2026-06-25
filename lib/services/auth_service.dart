@@ -66,4 +66,15 @@ static Future<String?> getToken() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString(_keyToken);
 }
+static const _keyTempToken = 'temp_token';
+
+static Future<void> saveTempToken(String token) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_keyTempToken, token);
+}
+
+static Future<String?> getTempToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString(_keyTempToken);
+}
 }

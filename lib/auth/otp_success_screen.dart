@@ -26,13 +26,14 @@ import '../auth/mpin_screen.dart';
 class OtpVerificationScreen extends StatefulWidget {
   /// Optional: if provided the screen opens directly on the OTP step.
   final String? savedPhoneNumber;
-
+  final String? initialRequestId; 
   /// Called when the user taps Back on the phone-entry screen.
   final VoidCallback onBack;
 
   const OtpVerificationScreen({
     super.key,
     this.savedPhoneNumber,
+    this.initialRequestId,
     required this.onBack,
   });
 
@@ -48,9 +49,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   // ── App state ─────────────────────────────────────────────────────────────
   _ScreenState _screenState = _ScreenState.phone;
   String _phoneNumber = '';
-  String _requestId = '';           // ← add this
   final List<String> _otp = List.filled(6, '');
   String _error = '';
+  String _requestId = '';
   bool _loading = false;
   int _timeLeft = 30;
   bool _canResend = false;
@@ -147,22 +148,31 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   // }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
-  @override
-  void initState() {
-    super.initState();
-    if (widget.savedPhoneNumber != null &&
-        widget.savedPhoneNumber!.isNotEmpty) {
-      _phoneNumber = widget.savedPhoneNumber!;
-      _phoneController.text = _phoneNumber;
+ @override
+void initState() {
+  super.initState();
+  debugPrint('initState — savedPhone: "${widget.savedPhoneNumber}", initialRequestId: "${widget.initialRequestId}"');
+  if (widget.savedPhoneNumber != null && widget.savedPhoneNumber!.isNotEmpty) {
+    _phoneNumber = widget.savedPhoneNumber!;
+    _phoneController.text = _phoneNumber;
+    if (widget.initialRequestId != null && widget.initialRequestId!.isNotEmpty) {
+      _requestId = widget.initialRequestId!;
+    }
+  }
+  for (final f in _otpFocusNodes) {
+    f.addListener(() => setState(() {}));
+  }
+  _phoneFocusNode.addListener(() => setState(() {}));
+
+  // After first frame, switch to OTP screen if we have a phone number
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (widget.savedPhoneNumber != null && widget.savedPhoneNumber!.isNotEmpty) {
       _switchTo(_ScreenState.otp);
     } else {
       _fadeCtrl.forward();
     }
-    for (final f in _otpFocusNodes) {
-      f.addListener(() => setState(() {}));
-    }
-    _phoneFocusNode.addListener(() => setState(() {}));
-  }
+  });
+}
 
   @override
   void dispose() {
@@ -182,11 +192,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   }
 
   // ── State switcher ────────────────────────────────────────────────────────
-  void _switchTo(_ScreenState next) {
+  void _switchTo(_ScreenState next, {String requestId = ''}) {
+    debugPrint('_switchTo called — requestId param: "$requestId", current _requestId: "$_requestId"');
     setState(() {
       _screenState = next;
       _error = '';
+      if (requestId.isNotEmpty) _requestId = requestId;
     });
+     debugPrint('_switchTo after setState — _requestId: "$_requestId"');
     _fadeCtrl.forward(from: 0);
 
     if (next == _ScreenState.otp) {
@@ -214,40 +227,23 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
 
   // ── Smart routing (from otp_screen.dart) ──────────────────────────────────
   void _navigateAfterVerify() {
-    if (_regResult == null) return;
+  if (_regResult == null) return;
 
-    final isRegistered = _regResult!['isRegistered'] == true;
-    final hasMpin = _regResult!['hasMPIN'] == true;
-    final userProfile = Map<String, dynamic>.from(
-      _regResult!['userProfile'] ?? _regResult!['user'] ?? {},
-    );
+  final isRegistered = _regResult!['isRegistered'] == true;
+  final hasMpin      = _regResult!['hasMPIN'] == true;
 
-    if (!isRegistered) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ProfileSetupScreen(phone: _phoneNumber),
-        ),
-      );
-    } else if (!hasMpin) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MpinSetupScreen(
-            phone: _phoneNumber,
-            profileData: userProfile,
-          ),
-        ),
-      );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MpinScreen(userProfile: userProfile),
-        ),
-      );
-    }
+  if (!isRegistered) {
+    Navigator.pushReplacement(context,
+      MaterialPageRoute(builder: (_) => ProfileSetupScreen(phone: _phoneNumber)));
+  } else if (!hasMpin) {
+    Navigator.pushReplacement(context,
+      MaterialPageRoute(builder: (_) => MpinSetupScreen(
+        phone: _phoneNumber, profileData: const {})));
+  } else {
+    Navigator.pushReplacement(context,
+      MaterialPageRoute(builder: (_) => MpinScreen(userProfile: const {})));
   }
+}
 
   // ── Countdown timer ───────────────────────────────────────────────────────
   void _startCountdown() {
@@ -279,59 +275,72 @@ Future<void> _handlePhoneSubmit() async {
     setState(() => _error = 'Please enter a valid 10-digit mobile number');
     return;
   }
+  // If we already have a requestId (sent from initState), go straight to OTP screen
+  if (_requestId.isNotEmpty) {
+    _switchTo(_ScreenState.otp);
+    return;
+  }
   setState(() { _error = ''; _loading = true; });
   try {
     final result = await ApiService.sendOtp(_phoneNumber);
-    debugPrint('DEBUG OTP → $result'); 
-
+    debugPrint('SEND OTP response: $result');
     final statusCode = result['statusCode'] as int? ?? 0;
-    final serverMessage = result['message']?.toString() ?? 'Something went wrong.';
-
-    if (result['success'] == true && statusCode == 200) {
-      _requestId = result['data']?['request_id']?.toString() ?? '';
-      _switchTo(_ScreenState.otp);
-    } else if (statusCode == 400) {
-      setState(() => _error = serverMessage); 
-    } else if (statusCode == 429) {
+    if (statusCode == 429) {
       _showRateLimitDialog();
+      return;
+    }
+    if (result['success'] == true) {
+      final data = result['data'];
+      final requestId = (data is Map ? data['request_id'] : null) as String? ?? '';
+      debugPrint('EXTRACTED requestId: "$requestId"');
+      _switchTo(_ScreenState.otp, requestId: requestId);
     } else {
-      setState(() => _error = serverMessage); 
+      setState(() => _error = result['message'] ?? 'Failed to send OTP');
     }
   } catch (e) {
-    debugPrint('DEBUG OTP ERROR → $e');
-    setState(() => _error = 'Service unavailable. Please try again later.');
+    setState(() => _error = 'Failed to send OTP. Please try again.');
   } finally {
     if (mounted) setState(() => _loading = false);
   }
 }
 
-Future<void> _handleResendOtp() async {
+ Future<void> _handleResendOtp() async {
   if (!_canResend) return;
-  _startCountdown();
   setState(() => _loading = true);
   try {
-    final result = await ApiService.sendOtp(_phoneNumber);
-    debugPrint('DEBUG RESEND OTP → $result'); 
-
+    final result = await ApiService.resendOtp(_requestId);
+    debugPrint('RESEND OTP response: $result');
+    debugPrint('DEBUG OTP → $result');
     final statusCode = result['statusCode'] as int? ?? 0;
-    final serverMessage = result['message']?.toString() ?? 'Something went wrong.';
 
-    if (result['success'] == true && statusCode == 200) {
-      _requestId = result['data']?['request_id']?.toString() ?? '';
-    } else if (statusCode == 429) {
-      _countdownTimer?.cancel();
-      setState(() => _canResend = false);
+    if (statusCode == 429) {
       _showRateLimitDialog();
+      return;
+    }
+    if (result['success'] == true) {
+      // Update request_id if the server issued a new one
+      final newId = result['data']?['request_id'] as String? ?? '';
+      if (newId.isNotEmpty) setState(() => _requestId = newId);
+      _startCountdown();
+    } else if (statusCode == 400) {
+      // Session expired — go back to phone entry
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Session expired. Please start over.')),
+        );
+        _handleChangeNumber();
+      }
     } else {
-      setState(() => _error = serverMessage); 
+      setState(() => _error = result['message'] ?? 'Failed to resend OTP');
     }
   } catch (e) {
-    debugPrint('DEBUG RESEND OTP ERROR → $e');
-    setState(() => _error = 'Service unavailable. Please try again later.');
+    setState(() => _error = 'Failed to resend OTP.');
   } finally {
     if (mounted) setState(() => _loading = false);
   }
 }
+
+
 void _showRateLimitDialog() {
   int secondsLeft = 300;
   Timer? dialogTimer;
@@ -444,40 +453,41 @@ void _showRateLimitDialog() {
 
   // ── Verify OTP + smart routing ────────────────────────────────────────────
 Future<void> _verifyOtp(String enteredOtp) async {
-    setState(() => _loading = true);
-    try {
-      final result = await ApiService.verifyOtp(_phoneNumber, enteredOtp, _requestId);
+  setState(() => _loading = true);
+  debugPrint('VERIFY → requestId: $_requestId, otp: $enteredOtp');
+  try {
+    final result = await ApiService.verifyOtp(_requestId, enteredOtp);
+    final statusCode = result['statusCode'] as int? ?? 0;
 
-      if (result['success'] == true) {
-        // Save session & token
-        final userId = result['user_id']?.toString() ?? '';
-        await AuthService.saveSession(userId: userId, phone: _phoneNumber);
-        final token = result['token']?.toString() ?? '';
-        if (token.isNotEmpty) await AuthService.saveToken(token);
+    if (statusCode == 429) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Too many attempts. Please slow down.')),
+      );
+      return;
+    }
 
-        // Check registration status to decide where to navigate
-        final regResult = await ApiService.checkUserRegistration(_phoneNumber);
-        _regResult = regResult;
+    if (result['success'] == true) {
+      final data = result['data'] as Map<String, dynamic>? ?? {};
+      debugPrint('VERIFY RESULT data: $data'); 
+      final tempToken = data['tempToken'] as String? ?? '';
+      if (tempToken.isNotEmpty) await AuthService.saveTempToken(tempToken);
 
-        if (mounted) _switchTo(_ScreenState.verified);
-      } else {
-        final msg = (result['error'] ?? '') as String;
-        setState(() {
-          _error = msg == 'OTP has expired. Please request a new OTP.'
-              ? 'Your OTP has expired. Please request a new one.'
-              : 'Invalid OTP. Please try again.';
-        });
-        _triggerShake();
-        _clearOtp();
-      }
-    } catch (e) {
-      setState(() => _error = 'Verification failed. Please try again.');
+      // The verify response itself tells us where to route
+      _regResult = data;
+      if (mounted) _switchTo(_ScreenState.verified);
+    } else {
+      setState(() => _error = 'Invalid OTP or OTP has expired.');
       _triggerShake();
       _clearOtp();
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
+  } catch (e) {
+    setState(() => _error = 'Verification failed. Please try again.');
+    _triggerShake();
+    _clearOtp();
+  } finally {
+    if (mounted) setState(() => _loading = false);
   }
+}
 
   void _triggerShake() =>
       _shakeCtrl.forward(from: 0).then((_) => _shakeCtrl.reset());
