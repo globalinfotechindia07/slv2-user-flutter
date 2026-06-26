@@ -77,4 +77,44 @@ static Future<String?> getTempToken() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString(_keyTempToken);
 }
+static const _keyAccessToken = 'access_token';
+static const _keyRefreshToken = 'refresh_token';
+static const _keyCustomer = 'customer_profile';
+
+static Future<void> saveAccessToken(String token) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_keyAccessToken, token);
+}
+
+static Future<String?> getAccessToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString(_keyAccessToken);
+}
+
+static Future<void> saveRefreshToken(String token) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_keyRefreshToken, token);
+}
+
+static Future<String?> getRefreshToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString(_keyRefreshToken);
+}
+
+static Future<void> saveCustomer(Map<String, dynamic> customer) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_keyCustomer, jsonEncode(customer));
+}
+
+static Future<Map<String, dynamic>?> getCustomer() async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getString(_keyCustomer);
+  if (raw == null) return null;
+  return jsonDecode(raw) as Map<String, dynamic>;
+}
+
+static Future<void> clearTempToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove(_keyTempToken);
+}
 }

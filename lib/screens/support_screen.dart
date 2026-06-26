@@ -95,7 +95,7 @@ class _SupportScreenState extends State<SupportScreen> {
           ),
 
           // Animated blob decorations — mirrors animate-pulse blobs
-          const _BackgroundBlobs(),
+          // const _BackgroundBlobs(),
 
           SafeArea(
             child: Column(
@@ -393,69 +393,69 @@ class _ToastNotificationState extends State<_ToastNotification>
 // ─── Background Blobs ─────────────────────────────────────────────────────────
 /// Mirrors React's animate-pulse background blobs
 
-class _BackgroundBlobs extends StatefulWidget {
-  const _BackgroundBlobs({Key? key}) : super(key: key);
+// class _BackgroundBlobs extends StatefulWidget {
+//   const _BackgroundBlobs({Key? key}) : super(key: key);
 
-  @override
-  State<_BackgroundBlobs> createState() => _BackgroundBlobsState();
-}
+//   @override
+//   State<_BackgroundBlobs> createState() => _BackgroundBlobsState();
+// }
 
-class _BackgroundBlobsState extends State<_BackgroundBlobs>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _pulse;
+// class _BackgroundBlobsState extends State<_BackgroundBlobs>
+//     with SingleTickerProviderStateMixin {
+//   late AnimationController _controller;
+//   late Animation<double> _pulse;
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _pulse = Tween<double>(begin: 0.25, end: 0.4)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     _controller = AnimationController(
+//       vsync: this,
+//       duration: const Duration(seconds: 2),
+//     )..repeat(reverse: true);
+//     _pulse = Tween<double>(begin: 0.25, end: 0.4)
+//         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+//   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+//   @override
+//   void dispose() {
+//     _controller.dispose();
+//     super.dispose();
+//   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _pulse,
-      builder: (_, __) => Stack(
-        children: [
-          // Right red blob
-          Positioned(
-            top: 80,
-            right: -160,
-            child: Container(
-              width: 384,
-              height: 384,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFFECACA).withOpacity(_pulse.value),
-              ),
-            ),
-          ),
-          // Left blue blob
-          Positioned(
-            bottom: 80,
-            left: -160,
-            child: Container(
-              width: 384,
-              height: 384,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFBFDBFE).withOpacity(_pulse.value),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return AnimatedBuilder(
+//       animation: _pulse,
+//       builder: (_, __) => Stack(
+//         children: [
+//           // Right red blob
+//           Positioned(
+//             top: 80,
+//             right: -160,
+//             child: Container(
+//               width: 384,
+//               height: 384,
+//               decoration: BoxDecoration(
+//                 shape: BoxShape.circle,
+//                 color: const Color(0xFFFECACA).withOpacity(_pulse.value),
+//               ),
+//             ),
+//           ),
+//           // Left blue blob
+//           Positioned(
+//             bottom: 80,
+//             left: -160,
+//             child: Container(
+//               width: 384,
+//               height: 384,
+//               decoration: BoxDecoration(
+//                 shape: BoxShape.circle,
+//                 color: const Color(0xFFBFDBFE).withOpacity(_pulse.value),
+//               ),
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }

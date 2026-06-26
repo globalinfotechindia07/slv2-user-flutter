@@ -104,26 +104,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
 
           // Blob decorations
-          Positioned(
-            right: -80, top: 80,
-            child: Container(
-              width: 300, height: 300,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEE2E2).withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            left: -80, bottom: 80,
-            child: Container(
-              width: 300, height: 300,
-              decoration: BoxDecoration(
-                color: const Color(0xFFDBEAFE).withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
+          // Positioned(
+          //   right: -80, top: 80,
+          //   child: Container(
+          //     width: 300, height: 300,
+          //     decoration: BoxDecoration(
+          //       color: const Color(0xFFFEE2E2).withOpacity(0.3),
+          //       shape: BoxShape.circle,
+          //     ),
+          //   ),
+          // ),
+          // Positioned(
+          //   left: -80, bottom: 80,
+          //   child: Container(
+          //     width: 300, height: 300,
+          //     decoration: BoxDecoration(
+          //       color: const Color(0xFFDBEAFE).withOpacity(0.3),
+          //       shape: BoxShape.circle,
+          //     ),
+          //   ),
+          // ),
 
           SafeArea(
             child: Column(

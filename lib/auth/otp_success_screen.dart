@@ -241,7 +241,9 @@ void initState() {
         phone: _phoneNumber, profileData: const {})));
   } else {
     Navigator.pushReplacement(context,
-      MaterialPageRoute(builder: (_) => MpinScreen(userProfile: const {})));
+      MaterialPageRoute(builder: (_) => MpinScreen(
+        userProfile: {'phoneNumber': _phoneNumber},
+      )));
   }
 }
 

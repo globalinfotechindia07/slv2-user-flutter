@@ -110,8 +110,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   void initState() {
     super.initState();
-    // animation-delay-2000 → start blob2 at 2/20 of cycle
-    // animation-delay-4000 → start blob3 at 4/20 of cycle
   }
 
   @override
@@ -154,23 +152,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   // Blob keyframe: translate(x,y) scale — approximated with sin/cos
   // 0%: (0,0) scale(1)  25%: (20,-50) scale(1.1)
   // 50%: (-20,20) scale(0.9)  75%: (50,50) scale(0.95)
-  Offset _blobOffset(double t) {
-    if (t < 0.25) {
-      final p = t / 0.25;
-      return Offset(lerpDouble(0, 20, p)!, lerpDouble(0, -50, p)!);
-    } else if (t < 0.5) {
-      final p = (t - 0.25) / 0.25;
-      return Offset(lerpDouble(20, -20, p)!, lerpDouble(-50, 20, p)!);
-    } else if (t < 0.75) {
-      final p = (t - 0.5) / 0.25;
-      return Offset(lerpDouble(-20, 50, p)!, lerpDouble(20, 50, p)!);
-    } else {
-      final p = (t - 0.75) / 0.25;
-      return Offset(lerpDouble(50, 0, p)!, lerpDouble(50, 0, p)!);
-    }
-  }
+  // Offset _blobOffset(double t) {
+  //   if (t < 0.25) {
+  //     final p = t / 0.25;
+  //     return Offset(lerpDouble(0, 20, p)!, lerpDouble(0, -50, p)!);
+  //   } else if (t < 0.5) {
+  //     final p = (t - 0.25) / 0.25;
+  //     return Offset(lerpDouble(20, -20, p)!, lerpDouble(-50, 20, p)!);
+  //   } else if (t < 0.75) {
+  //     final p = (t - 0.5) / 0.25;
+  //     return Offset(lerpDouble(-20, 50, p)!, lerpDouble(20, 50, p)!);
+  //   } else {
+  //     final p = (t - 0.75) / 0.25;
+  //     return Offset(lerpDouble(50, 0, p)!, lerpDouble(50, 0, p)!);
+  //   }
+  // }
 
-  double lerpDouble(double a, double b, double t) => a + (b - a) * t;
+  // double lerpDouble(double a, double b, double t) => a + (b - a) * t;
 
   @override
   Widget build(BuildContext context) {
@@ -367,23 +365,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
 // ── Blob — w-96 h-96 rounded-full ────────────────────────────────────────────
 
-class _Blob extends StatelessWidget {
-  final Color color;
-  final double opacity;
-  const _Blob({required this.color, required this.opacity});
+// class _Blob extends StatelessWidget {
+//   final Color color;
+//   final double opacity;
+//   const _Blob({required this.color, required this.opacity});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 260,
-      height: 260,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withOpacity(opacity),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Container(
+//       width: 260,
+//       height: 260,
+//       decoration: BoxDecoration(
+//         shape: BoxShape.circle,
+//         color: color.withOpacity(opacity),
+//       ),
+//     );
+//   }
+// }
 
 // ── Page Content ──────────────────────────────────────────────────────────────
 // flex-1 flex items-center justify-center text-center

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 
 class ForgotMpinScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -42,6 +43,8 @@ class _ForgotMpinScreenState extends State<ForgotMpinScreen>
   String _error = '';
   bool _loading = false;
   bool _isSuccess = false;
+  String _requestId = '';
+  String _tempToken = '';
 
   // Timer — 30s countdown
   int _timeLeft = 30;
@@ -143,33 +146,38 @@ class _ForgotMpinScreenState extends State<ForgotMpinScreen>
 
   // ── Step 1: Send OTP ──────────────────────────────────────────────────────
 
-  Future<void> _sendOtp() async {
-    if (widget.phoneNumber.length < 10) {
-      setState(() => _error = 'Please enter a valid 10-digit mobile number');
+Future<void> _sendOtp() async {
+  if (widget.phoneNumber.length < 10) {
+    setState(() => _error = 'Please enter a valid 10-digit mobile number');
+    return;
+  }
+  setState(() { _error = ''; _loading = true; });
+  try {
+    final result = await ApiService.sendOtp(widget.phoneNumber);
+    debugPrint('FORGOT MPIN sendOtp response: $result');
+    final statusCode = result['statusCode'] as int? ?? 0;
+    if (statusCode == 429) {
+      setState(() => _error = 'Too many requests. Please wait 5 minutes.');
       return;
     }
-    setState(() {
-      _error = '';
-      _loading = true;
-    });
-    try {
-      final result = await ApiService.sendOtp(widget.phoneNumber);
-      if (result['success'] == true) {
-        setState(() => _step = 2);
-        _fadeUpCtrl.reset();
-        _fadeUpCtrl.forward();
-        _startTimer();
-        WidgetsBinding.instance
-            .addPostFrameCallback((_) => _otpFocus[0].requestFocus());
-      } else {
-        throw Exception(result['message'] ?? 'Failed to send OTP');
-      }
-    } catch (e) {
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
-    } finally {
-      setState(() => _loading = false);
+    if (result['success'] == true) {
+      final data = result['data'];
+      final requestId = (data is Map ? data['request_id'] : null) as String? ?? '';
+      setState(() { _requestId = requestId; _step = 2; _error = ''; });
+      _fadeUpCtrl.reset();
+      _fadeUpCtrl.forward();
+      _startTimer();
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _otpFocus[0].requestFocus());
+    } else {
+      setState(() => _error = result['message'] ?? 'Failed to send OTP');
     }
+  } catch (e) {
+    setState(() => _error = 'Failed to send OTP. Please try again.');
+  } finally {
+    if (mounted) setState(() => _loading = false);
   }
+}
 
   // ── Step 2: OTP input ─────────────────────────────────────────────────────
 
@@ -219,42 +227,39 @@ class _ForgotMpinScreenState extends State<ForgotMpinScreen>
   }
 
   Future<void> _verifyOtp() async {
-    final otpVal = _otpCtrl.map((c) => c.text).join();
-    setState(() => _loading = true);
-    try {
-      final result = await ApiService.verifyOtp(widget.phoneNumber, otpVal);
-      if (result['success'] == true) {
-        // FIX: Clear error before transitioning to step 3 so no stale
-        // error message from a previous failed attempt shows on step 3.
-        setState(() {
-          _step = 3;
-          _error = '';
-        });
-        _fadeUpCtrl.reset();
-        _fadeUpCtrl.forward();
-        WidgetsBinding.instance
-            .addPostFrameCallback((_) => _mpinFocus[0].requestFocus());
-      } else {
-        final errMsg = result['error'] ?? '';
-        if (errMsg == 'OTP has expired. Please request a new OTP.') {
-          setState(
-              () => _error = 'Your OTP has expired. Please request a new one.');
-        } else {
-          setState(() => _error = 'Invalid OTP. Please try again.');
-        }
-        _shake();
-        for (final c in _otpCtrl) c.clear();
-        _otpFocus[0].requestFocus();
-      }
-    } catch (e) {
-      setState(
-          () => _error = 'Verification failed. Please try again.');
+  final otpVal = _otpCtrl.map((c) => c.text).join();
+  setState(() => _loading = true);
+  try {
+    final result = await ApiService.verifyOtp(_requestId, otpVal);
+    final statusCode = result['statusCode'] as int? ?? 0;
+
+    if (statusCode == 429) {
+      setState(() => _error = 'Too many attempts. Please slow down.');
+      return;
+    }
+
+    if (result['success'] == true) {
+      final data = result['data'] as Map<String, dynamic>? ?? {};
+      final tempToken = data['tempToken'] as String? ?? '';
+      setState(() { _tempToken = tempToken; _step = 3; _error = ''; });
+      _fadeUpCtrl.reset();
+      _fadeUpCtrl.forward();
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _mpinFocus[0].requestFocus());
+    } else {
+      setState(() => _error = 'Invalid OTP. Please try again.');
+      _shake();
       for (final c in _otpCtrl) c.clear();
       _otpFocus[0].requestFocus();
-    } finally {
-      setState(() => _loading = false);
     }
+  } catch (e) {
+    setState(() => _error = 'Verification failed. Please try again.');
+    for (final c in _otpCtrl) c.clear();
+    _otpFocus[0].requestFocus();
+  } finally {
+    if (mounted) setState(() => _loading = false);
   }
+}
 
   // ── Step 3: Reset MPIN ────────────────────────────────────────────────────
 
@@ -284,50 +289,72 @@ class _ForgotMpinScreenState extends State<ForgotMpinScreen>
     }
   }
 
-  Future<void> _resetMpin() async {
-    final mpinVal = _mpinCtrl.map((c) => c.text).join();
-    final confirmVal = _confirmCtrl.map((c) => c.text).join();
+Future<void> _resetMpin() async {
+  final mpinVal = _mpinCtrl.map((c) => c.text).join();
+  final confirmVal = _confirmCtrl.map((c) => c.text).join();
 
-    if (mpinVal.length < 4 || confirmVal.length < 4) {
-      setState(() => _error = 'Please enter all digits');
-      return;
-    }
+  if (mpinVal.length < 4 || confirmVal.length < 4) {
+    setState(() => _error = 'Please enter all digits');
+    return;
+  }
+  if (mpinVal != confirmVal) {
+    setState(() => _error = 'MPINs do not match');
+    _shake();
+    for (final c in _confirmCtrl) c.clear();
+    _confirmFocus[0].requestFocus();
+    return;
+  }
+  if (_tempToken.isEmpty) {
+    setState(() => _error = 'Session expired. Please start over.');
+    return;
+  }
 
-    if (mpinVal != confirmVal) {
-      setState(() => _error = 'MPINs do not match');
+  setState(() { _loading = true; _error = ''; });
+  try {
+    final response = await ApiService.resetMpinWithToken(
+      mpin: mpinVal,
+      confirmMpin: confirmVal,
+      tempToken: _tempToken,
+    );
+    final statusCode = response['statusCode'] as int? ?? 0;
+
+    if (statusCode == 200 && response['success'] == true) {
+      final data = response['data'] as Map<String, dynamic>? ?? {};
+      final accessToken = data['accessToken'] as String? ?? '';
+      final user = data['user'] as Map<String, dynamic>? ?? {};
+
+      if (accessToken.isNotEmpty) await AuthService.saveAccessToken(accessToken);
+      if (user.isNotEmpty) await AuthService.saveCustomer(user);
+      await AuthService.clearTempToken();
+
+      setState(() => _isSuccess = true);
+      _fadeUpCtrl.reset();
+      _fadeUpCtrl.forward();
+      _bounceCtrl.repeat(reverse: true);
+
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) widget.onResetComplete();
+      });
+
+    } else if (statusCode == 401) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Session expired. Please start over.')),
+        );
+        setState(() => _step = 1);
+      }
+    } else {
+      setState(() => _error = response['message'] as String? ?? 'Failed to reset MPIN');
       _shake();
       for (final c in _confirmCtrl) c.clear();
       _confirmFocus[0].requestFocus();
-      return;
     }
-
-    setState(() {
-      _loading = true;
-      _error = '';
-    });
-    try {
-      final response =
-          await ApiService.resetMpin(widget.phoneNumber, mpinVal);
-      if (response['success'] == true) {
-        setState(() => _isSuccess = true);
-        // FIX: Trigger fade-up animation for success screen entry,
-        // matching React's animate-fade-up on the success div.
-        _fadeUpCtrl.reset();
-        _fadeUpCtrl.forward();
-        _bounceCtrl.repeat(reverse: true);
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (mounted) widget.onResetComplete();
-        });
-      } else {
-        setState(
-            () => _error = 'Failed to reset MPIN. Please try again.');
-      }
-    } catch (e) {
-      setState(() => _error = 'Failed to reset MPIN. Please try again.');
-    } finally {
-      setState(() => _loading = false);
-    }
+  } catch (e) {
+    setState(() => _error = 'Failed to reset MPIN. Please try again.');
+  } finally {
+    if (mounted) setState(() => _loading = false);
   }
+}
 
   // ── Step icon / title / subtitle ──────────────────────────────────────────
 

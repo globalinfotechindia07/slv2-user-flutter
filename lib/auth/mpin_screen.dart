@@ -141,74 +141,81 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
 
   // ── Validate MPIN — mirrors React's validateMPIN ──────────────────────────
   Future<void> _validateMpin(List<String> mpinArray) async {
-    setState(() {
-      _loading = true;
-      _error = '';
-    });
+  setState(() { _loading = true; _error = ''; });
 
-    try {
-      final enteredMpin = mpinArray.join();
-      final phone = (widget.userProfile['phoneNumber'] ??
-              widget.userProfile['phone'] ??
-              '') as String;
+  try {
+    final enteredMpin = mpinArray.join();
+    final phone = (widget.userProfile['phoneNumber'] ??
+        widget.userProfile['phone'] ?? '') as String;
 
-      // Mirrors: const response = await verifyMPIN(userProfile.phoneNumber, enteredMPIN)
-      final response = await ApiService.verifyMpin(phone, enteredMpin);
-      print('verifyMpin response: $response');
+    final response = await ApiService.loginWithMpin(
+      phoneNumber: phone,
+      mpin: enteredMpin,
+    );
 
-      if (response['success'] == true) {
-        final user = response['user'] as Map<String, dynamic>? ?? {};
+    final statusCode = response['statusCode'] as int? ?? 0;
 
-        // Save session so AuthService.getUserId() works throughout the app
-        await AuthService.saveSession(
-          userId: (user['id'] ?? user['user_id'] ?? '').toString(),
-          phone: phone,
-          user: user,
-        );
+    if (statusCode == 200 && response['success'] == true) {
+      final data = response['data'] as Map<String, dynamic>? ?? {};
+      final accessToken = data['accessToken'] as String? ?? '';
+      final refreshToken = data['refreshToken'] as String? ?? '';
+      final customer = data['customer'] as Map<String, dynamic>? ?? {};
 
-        // Save token if present
-        final token = response['token'] ?? response['access_token'] ?? user['token'];
-        if (token != null) {
-          await AuthService.saveToken(token.toString());
-        }
+      // Save tokens and customer
+      if (accessToken.isNotEmpty) await AuthService.saveAccessToken(accessToken);
+      if (refreshToken.isNotEmpty) await AuthService.saveRefreshToken(refreshToken);
+      if (customer.isNotEmpty) await AuthService.saveCustomer(customer);
 
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HomeScreen(userProfile: user),
-          ),
-        );
-      } else {
-        throw Exception(response['message'] ?? 'Incorrect MPIN');
-      }
-    } catch (e) {
-      setState(() => _isShaking = true);
-
-      // Mirrors React: 401 check → 'Invalid MPIN', else error.message, else 'Login failed'
-      final message = e.toString().replaceAll('Exception: ', '');
-      setState(() {
-        _error = message.toLowerCase().contains('invalid mpin') ||
-                message.toLowerCase().contains('401')
-            ? 'Invalid MPIN'
-            : message.isNotEmpty
-                ? message
-                : 'Login failed';
-      });
-
-      for (final c in _controllers) c.clear();
-      _focusNodes[0].requestFocus();
-      _shakeCtrl.forward(from: 0);
-      Future.delayed(
-        const Duration(milliseconds: 500),
-        () {
-          if (mounted) setState(() => _isShaking = false);
-        },
+      await AuthService.saveSession(
+        userId: customer['id']?.toString() ?? '',
+        phone: phone,
+        user: customer,
       );
-    } finally {
-      if (mounted) setState(() => _loading = false);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(userProfile: customer),
+        ),
+      );
+
+    } else if (statusCode == 401) {
+      // Wrong MPIN
+      _triggerError('Incorrect MPIN. Please try again.');
+
+    } else if (statusCode == 404) {
+      // Customer not found — kick back to start
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account not found. Please register first.')),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+
+    } else {
+      _triggerError(response['message'] as String? ?? 'Login failed');
     }
+
+  } catch (e) {
+    _triggerError('Something went wrong. Please try again.');
+  } finally {
+    if (mounted) setState(() => _loading = false);
   }
+}
+
+void _triggerError(String message) {
+  setState(() {
+    _error = message;
+    _isShaking = true;
+  });
+  for (final c in _controllers) c.clear();
+  _focusNodes[0].requestFocus();
+  _shakeCtrl.forward(from: 0);
+  Future.delayed(const Duration(milliseconds: 500), () {
+    if (mounted) setState(() => _isShaking = false);
+  });
+}
 
   // ── Forgot MPIN — mirrors React's onForgotMPIN prop ──────────────────────
   void _forgotMpin() {
@@ -217,9 +224,12 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
       return;
     }
     // Default navigation fallback when no callback is provided
+    debugPrint('userProfile keys: ${widget.userProfile.keys.toList()}');  
+    debugPrint('userProfile: ${widget.userProfile}');        
     final phone = (widget.userProfile['phoneNumber'] ??
         widget.userProfile['phone'] ??
         '') as String;
+    debugPrint('phone extracted: "$phone"');    
     Navigator.push(
       context,
       MaterialPageRoute(

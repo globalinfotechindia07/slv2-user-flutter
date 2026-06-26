@@ -183,94 +183,108 @@ class _MpinSetupScreenState extends State<MpinSetupScreen>
 
   // ── Validate & Register ───────────────────────────────────────────────────
 
-  Future<void> _validateMpin(List<String> confirmedValues) async {
-    setState(() {
-      _loading = true;
-      _error = '';
-    });
+Future<void> _validateMpin(List<String> confirmedValues) async {
+  setState(() { _loading = true; _error = ''; });
 
-    final originalMpin = _setupCtrl.map((c) => c.text).join();
-    final confirmedMpin = confirmedValues.join();
+  final originalMpin = _setupCtrl.map((c) => c.text).join();
+  final confirmedMpin = confirmedValues.join();
 
-    try {
-      // Validate all digits present
-      if (originalMpin.length < 4 || confirmedMpin.length < 4) {
-        throw Exception('Please enter all digits');
+  // Frontend validation first
+  if (originalMpin.length < 4 || confirmedMpin.length < 4) {
+    setState(() { _error = 'Please enter all digits'; _loading = false; });
+    return;
+  }
+  if (originalMpin != confirmedMpin) {
+    _shake();
+    setState(() { _error = 'MPINs do not match'; _loading = false; });
+    for (final c in _confirmCtrl) c.clear();
+    _confirmFocus[0].requestFocus();
+    return;
+  }
+
+  try {
+    final tempToken = await AuthService.getTempToken() ?? '';
+
+    if (tempToken.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Session expired. Please verify OTP again.')),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
+      return;
+    }
 
-      // Check match
-      if (originalMpin != confirmedMpin) {
-        throw Exception('MPINs do not match');
-      }
+    final response = await ApiService.setupMpin(
+      mpin: originalMpin,
+      confirmMpin: confirmedMpin,
+      tempToken: tempToken,
+    );
 
-      // FIX 9 ── call registerUser with full profileData + mpin,
-      // matching React's validateAndRegisterUser(originalMPIN)
-      final userData = {
-        'name': widget.profileData['name'],
-        'email': widget.profileData['email'],
-        'phoneNumber': widget.profileData['phoneNumber'] ?? widget.phone,
-        'dateOfBirth': widget.profileData['dateOfBirth'],
-        'gender': widget.profileData['gender'],
-        'address': widget.profileData['address'],
-        'aadhaarNumber': widget.profileData['aadhaarNumber'],
-        'panNumber': widget.profileData['panNumber'],
-        'mpin': originalMpin,
-      };
+    final statusCode = response['statusCode'] as int? ?? 0;
 
-      final tempToken = await AuthService.getTempToken() ?? '';
-      final response = await ApiService.registerUser(userData, tempToken: tempToken);
-      final success = response['success'] == true;
+    if (statusCode == 201 && response['success'] == true) {
+      final data = response['data'] as Map<String, dynamic>? ?? {};
+      final accessToken = data['accessToken'] as String? ?? '';
+      final refreshToken = data['refreshToken'] as String? ?? '';
+      final customer = data['customer'] as Map<String, dynamic>? ?? {};
 
-      if (!success) {
-        throw Exception(
-            response['error'] ?? response['message'] ?? 'Registration failed');
-      }
+      // Clear tempToken, save real tokens + customer
+      await AuthService.clearTempToken();
+      if (accessToken.isNotEmpty) await AuthService.saveAccessToken(accessToken);
+      if (refreshToken.isNotEmpty) await AuthService.saveRefreshToken(refreshToken);
+      if (customer.isNotEmpty) await AuthService.saveCustomer(customer);
 
-      // ── Success flow ────────────────────────────────────────────────────
+      // Also save session for backward compatibility
+      await AuthService.saveSession(
+        userId: customer['id']?.toString() ?? '',
+        phone: widget.phone,
+        user: customer,
+      );
+
+      // Show success screen then navigate to dashboard
       setState(() => _step = 'success');
-
-      // FIX 7 ── start staggered dot bounces (0s / 0.2s / 0.4s delays)
       _dot1Ctrl.repeat(reverse: true);
       Future.delayed(const Duration(milliseconds: 200),
           () => _dot2Ctrl.repeat(reverse: true));
       Future.delayed(const Duration(milliseconds: 400),
           () => _dot3Ctrl.repeat(reverse: true));
 
-      // Auto-navigate after 2 seconds (React: setTimeout 2000ms)
       Future.delayed(const Duration(milliseconds: 2000), () {
-        if (mounted) Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (_) => MpinScreen(
-              userProfile: {
-                ...widget.profileData,
-                'phoneNumber': widget.phone,
-              },
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HomeScreen(userProfile: customer),
             ),
-          ),
-          (route) => false,
-        );
+            (route) => false,
+          );
+        }
       });
 
-    } catch (e) {
+    } else if (statusCode == 401) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Session expired. Please verify OTP again.')),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } else {
+      // 400 or other — show error from server
+      _shake();
+      setState(() => _error = response['message'] as String? ?? 'MPIN setup failed');
+      for (final c in _confirmCtrl) c.clear();
+      _confirmFocus[0].requestFocus();
+    }
+  } catch (e) {
     _shake();
-    String msg;
-    if (e is SocketException) {
-    // FIX ── matches React's error.request branch (no response received)
-    msg = 'No response received from server';
-  } else if (e is FormatException) {
-    // Non-JSON response, malformed payload, etc.
-    msg = 'No response received from server';
-  } else {
-    msg = e.toString().replaceAll('Exception: ', '');
+    setState(() => _error = 'Something went wrong. Please try again.');
+    for (final c in _confirmCtrl) c.clear();
+    _confirmFocus[0].requestFocus();
+  } finally {
+    if (mounted) setState(() => _loading = false);
   }
-  setState(() => _error = msg.isNotEmpty ? msg : 'Registration failed');
-  for (final c in _confirmCtrl) c.clear();
-  _confirmFocus[0].requestFocus();
-} finally {
-  setState(() => _loading = false);
 }
-  }
 
   // ── Back handler ──────────────────────────────────────────────────────────
 

@@ -296,18 +296,10 @@ class _AboutContent extends StatelessWidget {
                     border: Border.all(color: Colors.grey.shade200, width: 2),
                   ),
                   child: ClipOval(
-                    child: logoAsset != null
-                        ? Image.asset(logoAsset!, fit: BoxFit.contain)
-                        : const Center(
-                            child: Text(
-                              'SL',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1F2937),
-                              ),
-                            ),
-                          ),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),

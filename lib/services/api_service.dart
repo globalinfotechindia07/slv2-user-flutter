@@ -60,9 +60,26 @@ static Future<Map<String, dynamic>> verifyOtp(
 // Add new resendOtp:
 static Future<Map<String, dynamic>> resendOtp(String requestId) async {
   final response = await http.post(
-    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/otp/resend'),
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/otp/send'),
     headers: _headers,
     body: jsonEncode({'request_id': requestId}),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+static Future<Map<String, dynamic>> loginWithMpin({
+  required String phoneNumber,
+  required String mpin,
+}) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/mpin-login'),
+    headers: _headers,
+    body: jsonEncode({
+      'phoneNumber': phoneNumber,
+      'mpin': mpin,
+    }),
   );
   final data = jsonDecode(response.body) as Map<String, dynamic>;
   data['statusCode'] = response.statusCode;
@@ -81,6 +98,48 @@ static Future<Map<String, dynamic>> resendOtp(String requestId) async {
     );
     return jsonDecode(response.body);
   }
+  static Future<Map<String, dynamic>> resetMpinWithToken({
+  required String mpin,
+  required String confirmMpin,
+  required String tempToken,
+}) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/mpin-reset'),
+    headers: {
+      ..._headers,
+      'Authorization': 'Bearer $tempToken',
+    },
+    body: jsonEncode({
+      'mpin': mpin,
+      'confirmMpin': confirmMpin,
+    }),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+static Future<Map<String, dynamic>> setupMpin({
+  required String mpin,
+  required String confirmMpin,
+  required String tempToken,
+}) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/mpin-setup'),
+    headers: {
+      ..._headers,
+      'Authorization': 'Bearer $tempToken',
+    },
+    body: jsonEncode({
+      'mpin': mpin,
+      'confirmMpin': confirmMpin,
+    }),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
 static Future<Map<String, dynamic>> registerUser(
     Map<String, dynamic> formData, {String tempToken = ''}) async {
   final response = await http.post(
@@ -92,6 +151,32 @@ static Future<Map<String, dynamic>> registerUser(
     body: jsonEncode(formData),
   );
   return jsonDecode(response.body);
+}
+static Future<Map<String, dynamic>> setupProfile({
+  required String fullName,
+  required String email,
+  required String dob,
+  required String gender,
+  required String address,
+  required String tempToken,
+}) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/profile-setup'),
+    headers: {
+      ..._headers,
+      'Authorization': 'Bearer $tempToken',
+    },
+    body: jsonEncode({
+      'fullName': fullName,
+      'email': email,
+      'dob': dob,
+      'gender': gender,
+      'address': address,
+    }),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
 }
 
  
@@ -315,6 +400,7 @@ static Future<Map<String, dynamic>> verifyAadhaarOtp(String phone, String aadhaa
     return {'success': false, 'message': 'Aadhaar verification service not available yet'};
   }
 }
+
 static Future<Map<String, dynamic>> logout() async {
   final response = await http.post(
     Uri.parse('${ApiConstants.userBaseUrl}/logout.php'),
@@ -370,7 +456,7 @@ static Future<Map<String, dynamic>> saveLoanDocuments(
     }
   }
 
-  final token = await AuthService.getToken();
+  final token = await AuthService.getAccessToken();
   if (token != null && token.isNotEmpty) {
     request.headers['Authorization'] = 'Bearer $token';
   }
@@ -460,7 +546,7 @@ static Future<Map<String, dynamic>> getOperators({String category = 'Prepaid'}) 
     required String? operatorName,
     required String mobileNumber,
   }) async {
-    final token = await AuthService.getToken();
+    final token = await AuthService.getAccessToken();
     debugPrint('RECHARGE TOKEN: $token');
     final response = await http.post(
       Uri.parse('${ApiConstants.servicesBaseUrl}/create-order.php'),
@@ -485,7 +571,7 @@ static Future<Map<String, dynamic>> getOperators({String category = 'Prepaid'}) 
     required String razorpayOrderId,
     required String razorpaySignature,
   }) async {
-    final token = await AuthService.getToken();
+    final token = await AuthService.getAccessToken();
     final response = await http.post(
       Uri.parse('${ApiConstants.servicesBaseUrl}/verify-payment.php'),
       headers: {

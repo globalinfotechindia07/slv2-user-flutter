@@ -20,19 +20,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   final _emailController = TextEditingController();
   final _dobController = TextEditingController();
   final _addressController = TextEditingController();
-  final _aadhaarController = TextEditingController();
+  // final _aadhaarController = TextEditingController();
   // [ADDED] PAN number controller — optional field matching React's panNumber
-  final _panController = TextEditingController();
+  // final _panController = TextEditingController();
   DateTime? _selectedDob;
-
+  String? _emailError; 
   String? _selectedGender;
   bool _loading = false;
-  bool _emailVerified = false;
-  bool _aadhaarVerified = false;
-  bool _emailOtpSent = false;
-  bool _aadhaarOtpSent = false;
-  bool _sendingEmailOtp = false;
-  bool _sendingAadhaarOtp = false;
+  // bool _emailVerified = false;
+  // bool _aadhaarVerified = false;
+  // bool _emailOtpSent = false;
+  // bool _aadhaarOtpSent = false;
+  // bool _sendingEmailOtp = false;
+  // bool _sendingAadhaarOtp = false;
 
   // Fade-up animation
   late final AnimationController _fadeCtrl = AnimationController(
@@ -52,9 +52,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     _emailController.dispose();
     _dobController.dispose();
     _addressController.dispose();
-    _aadhaarController.dispose();
+    // _aadhaarController.dispose();
     // [ADDED] dispose PAN controller
-    _panController.dispose();
+    // _panController.dispose();
     _fadeCtrl.dispose();
     super.dispose();
   }
@@ -83,83 +83,83 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   }
 }
 
-  Future<void> _sendEmailOtp() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty || !RegExp(r'\S+@\S+\.\S+').hasMatch(email)) {
-      _showSnack('Please enter a valid email address first');
-      return;
-    }
-    setState(() => _sendingEmailOtp = true);
-    try {
-      final result = await ApiService.sendEmailOtp(email);
-      if (result['success'] == true) {
-        setState(() => _emailOtpSent = true);
-        _showOtpBottomSheet(
-          title: 'Verify Email',
-          subtitle: 'Enter the 6-digit OTP sent to\n$email',
-          onVerify: (otp) => _verifyEmailOtp(email, otp),
-          onResend: _sendEmailOtp,
-        );
-      } else {
-        _showSnack(result['message'] ?? 'Failed to send OTP');
-      }
-    } catch (e) {
-      _showSnack('Error: ${e.toString()}');
-    } finally {
-      setState(() => _sendingEmailOtp = false);
-    }
-  }
+  // Future<void> _sendEmailOtp() async {
+  //   final email = _emailController.text.trim();
+  //   if (email.isEmpty || !RegExp(r'\S+@\S+\.\S+').hasMatch(email)) {
+  //     _showSnack('Please enter a valid email address first');
+  //     return;
+  //   }
+  //   setState(() => _sendingEmailOtp = true);
+  //   try {
+  //     final result = await ApiService.sendEmailOtp(email);
+  //     if (result['success'] == true) {
+  //       setState(() => _emailOtpSent = true);
+  //       _showOtpBottomSheet(
+  //         title: 'Verify Email',
+  //         subtitle: 'Enter the 6-digit OTP sent to\n$email',
+  //         onVerify: (otp) => _verifyEmailOtp(email, otp),
+  //         onResend: _sendEmailOtp,
+  //       );
+  //     } else {
+  //       _showSnack(result['message'] ?? 'Failed to send OTP');
+  //     }
+  //   } catch (e) {
+  //     _showSnack('Error: ${e.toString()}');
+  //   } finally {
+  //     setState(() => _sendingEmailOtp = false);
+  //   }
+  // }
 
-  Future<void> _verifyEmailOtp(String email, String otp) async {
-    final result = await ApiService.verifyEmailOtp(email, otp);
-    if (result['success'] == true) {
-      setState(() => _emailVerified = true);
-      Navigator.pop(context);
-      _showSnack('Email verified successfully!', success: true);
-    } else {
-      throw Exception(result['message'] ?? 'Invalid OTP');
-    }
-  }
+  // Future<void> _verifyEmailOtp(String email, String otp) async {
+  //   final result = await ApiService.verifyEmailOtp(email, otp);
+  //   if (result['success'] == true) {
+  //     setState(() => _emailVerified = true);
+  //     Navigator.pop(context);
+  //     _showSnack('Email verified successfully!', success: true);
+  //   } else {
+  //     throw Exception(result['message'] ?? 'Invalid OTP');
+  //   }
+  // }
 
-  Future<void> _sendAadhaarOtp() async {
-    final aadhaar = _aadhaarController.text.trim();
-    if (aadhaar.length != 12) {
-      _showSnack('Please enter a valid 12-digit Aadhaar number first');
-      return;
-    }
-    setState(() => _sendingAadhaarOtp = true);
-    try {
-      final result = await ApiService.sendAadhaarOtp(widget.phone, aadhaar);
-      if (result['success'] == true) {
-        setState(() => _aadhaarOtpSent = true);
-        _showOtpBottomSheet(
-          title: 'Verify Aadhaar',
-          subtitle:
-              'Enter the 6-digit OTP sent to your\nregistered mobile +91 ${widget.phone}',
-          onVerify: (otp) => _verifyAadhaarOtp(aadhaar, otp),
-          onResend: _sendAadhaarOtp,
-        );
-      } else {
-        _showSnack(result['message'] ?? 'Failed to send OTP');
-      }
-    } catch (e) {
-      _showSnack('Error: ${e.toString()}');
-    } finally {
-      setState(() => _sendingAadhaarOtp = false);
-    }
-  }
+  // Future<void> _sendAadhaarOtp() async {
+  //   final aadhaar = _aadhaarController.text.trim();
+  //   if (aadhaar.length != 12) {
+  //     _showSnack('Please enter a valid 12-digit Aadhaar number first');
+  //     return;
+  //   }
+  //   setState(() => _sendingAadhaarOtp = true);
+  //   try {
+  //     final result = await ApiService.sendAadhaarOtp(widget.phone, aadhaar);
+  //     if (result['success'] == true) {
+  //       setState(() => _aadhaarOtpSent = true);
+  //       _showOtpBottomSheet(
+  //         title: 'Verify Aadhaar',
+  //         subtitle:
+  //             'Enter the 6-digit OTP sent to your\nregistered mobile +91 ${widget.phone}',
+  //         onVerify: (otp) => _verifyAadhaarOtp(aadhaar, otp),
+  //         onResend: _sendAadhaarOtp,
+  //       );
+  //     } else {
+  //       _showSnack(result['message'] ?? 'Failed to send OTP');
+  //     }
+  //   } catch (e) {
+  //     _showSnack('Error: ${e.toString()}');
+  //   } finally {
+  //     setState(() => _sendingAadhaarOtp = false);
+  //   }
+  // }
 
-  Future<void> _verifyAadhaarOtp(String aadhaar, String otp) async {
-    final result =
-        await ApiService.verifyAadhaarOtp(widget.phone, aadhaar, otp);
-    if (result['success'] == true) {
-      setState(() => _aadhaarVerified = true);
-      Navigator.pop(context);
-      _showSnack('Aadhaar verified successfully!', success: true);
-    } else {
-      throw Exception(result['message'] ?? 'Invalid OTP');
-    }
-  }
+  // Future<void> _verifyAadhaarOtp(String aadhaar, String otp) async {
+  //   final result =
+  //       await ApiService.verifyAadhaarOtp(widget.phone, aadhaar, otp);
+  //   if (result['success'] == true) {
+  //     setState(() => _aadhaarVerified = true);
+  //     Navigator.pop(context);
+  //     _showSnack('Aadhaar verified successfully!', success: true);
+  //   } else {
+  //     throw Exception(result['message'] ?? 'Invalid OTP');
+  //   }
+  // }
 
   void _showOtpBottomSheet({
     required String title,
@@ -193,38 +193,91 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   }
 
   // REPLACE the entire _submit method with:
-void _submit() {
-  if (_formKey.currentState!.validate()) {
-    if (_selectedGender == null || _selectedGender!.isEmpty) {
+Future<void> _submit() async {
+  // Clear previous email error
+  setState(() => _emailError = null);
+
+  if (!_formKey.currentState!.validate()) return;
+
+  if (_selectedGender == null || _selectedGender!.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please select gender')),
+    );
+    return;
+  }
+
+  setState(() => _loading = true);
+  try {
+    final tempToken = await AuthService.getTempToken() ?? '';
+
+    if (tempToken.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select gender')),
+        const SnackBar(content: Text('Session expired. Please verify OTP again.')),
       );
       return;
     }
 
-    final profileData = {
-  'name': _nameController.text.trim(),
-  'email': _emailController.text.trim(),
-  'phoneNumber': widget.phone,
-  'dateOfBirth': _selectedDob != null
-      ? "${_selectedDob!.year.toString().padLeft(4,'0')}-${_selectedDob!.month.toString().padLeft(2,'0')}-${_selectedDob!.day.toString().padLeft(2,'0')}"
-      : '',
-  'gender': _selectedGender,
-  'address': _addressController.text.trim(),
-  'aadhaarNumber': _aadhaarController.text.trim(),
-  if (_panController.text.trim().isNotEmpty)
-    'panNumber': _panController.text.trim().toUpperCase(),
-};
+    final dob = _selectedDob != null
+        ? '${_selectedDob!.year.toString().padLeft(4, '0')}-'
+          '${_selectedDob!.month.toString().padLeft(2, '0')}-'
+          '${_selectedDob!.day.toString().padLeft(2, '0')}'
+        : '';
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MpinSetupScreen(
-          phone: widget.phone,
-          profileData: profileData,
-        ),
-      ),
+    final result = await ApiService.setupProfile(
+      fullName: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      dob: dob,
+      gender: _selectedGender!,
+      address: _addressController.text.trim(),
+      tempToken: tempToken,
     );
+
+    final statusCode = result['statusCode'] as int? ?? 0;
+
+    if (statusCode == 201 && result['success'] == true) {
+      final profileData = {
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phoneNumber': widget.phone,
+        'dateOfBirth': dob,
+        'gender': _selectedGender,
+        'address': _addressController.text.trim(),
+      };
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MpinSetupScreen(
+              phone: widget.phone,
+              profileData: profileData,
+            ),
+          ),
+        );
+      }
+    } else if (statusCode == 409) {
+      // Duplicate email — highlight email field
+      setState(() => _emailError = result['error'] as String? ??
+          'This email is already registered with another account.');
+    } else if (statusCode == 401) {
+      // Session expired — send back to phone entry
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Session expired. Please verify OTP again.')),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } else {
+      // 400 or other errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'] ?? 'Failed to set up profile')),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Something went wrong. Please try again.')),
+    );
+  } finally {
+    if (mounted) setState(() => _loading = false);
   }
 }
 
@@ -409,20 +462,16 @@ void _submit() {
                             const SizedBox(height: 14),
 
                             // Email
-                            _buildVerifiableField(
+                            _buildField(
                               controller: _emailController,
                               label: 'Email Address',
                               hint: 'Enter your email address',
                               icon: Icons.email_outlined,
                               keyboardType: TextInputType.emailAddress,
-                              isVerified: _emailVerified,
-                              isSending: _sendingEmailOtp,
-                              onSendOtp: _sendEmailOtp,
                               validator: (v) {
-                                if (v!.trim().isEmpty)
-                                  return 'Email is required';
-                                if (!RegExp(r'\S+@\S+\.\S+').hasMatch(v))
-                                  return 'Enter a valid email';
+                                if (_emailError != null) return _emailError;
+                                if (v!.trim().isEmpty) return 'Email is required';
+                                if (!RegExp(r'\S+@\S+\.\S+').hasMatch(v)) return 'Enter a valid email';
                                 return null;
                               },
                             ),
@@ -522,57 +571,57 @@ void _submit() {
                             ),
                             const SizedBox(height: 14),
 
-                            // Aadhaar Number
-                            _buildVerifiableField(
-                              controller: _aadhaarController,
-                              label: 'Aadhaar Number',
-                              hint: 'Enter 12-digit Aadhaar number',
-                              icon: Icons.credit_card_outlined,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly
-                              ],
-                              maxLength: 12,
-                              isVerified: _aadhaarVerified,
-                              isSending: _sendingAadhaarOtp,
-                              onSendOtp: _sendAadhaarOtp,
-                              validator: (v) {
-                                if (v!.trim().isEmpty)
-                                  return 'Aadhaar number is required';
-                                if (v.length != 12)
-                                  return 'Enter valid 12-digit Aadhaar';
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 14),
+                            // // Aadhaar Number
+                            // _buildVerifiableField(
+                            //   controller: _aadhaarController,
+                            //   label: 'Aadhaar Number',
+                            //   hint: 'Enter 12-digit Aadhaar number',
+                            //   icon: Icons.credit_card_outlined,
+                            //   keyboardType: TextInputType.number,
+                            //   inputFormatters: [
+                            //     FilteringTextInputFormatter.digitsOnly
+                            //   ],
+                            //   maxLength: 12,
+                            //   isVerified: _aadhaarVerified,
+                            //   isSending: _sendingAadhaarOtp,
+                            //   onSendOtp: _sendAadhaarOtp,
+                            //   validator: (v) {
+                            //     if (v!.trim().isEmpty)
+                            //       return 'Aadhaar number is required';
+                            //     if (v.length != 12)
+                            //       return 'Enter valid 12-digit Aadhaar';
+                            //     return null;
+                            //   },
+                            // ),
+                            // const SizedBox(height: 14),
 
-                            // [ADDED] PAN Number — optional field matching React
-                            _buildField(
-                              controller: _panController,
-                              label: 'PAN Number (Optional)',
-                              hint: 'Enter your PAN number (e.g. ABCDE1234F)',
-                              icon: Icons.credit_card_outlined,
-                              keyboardType: TextInputType.text,
-                              maxLength: 10,
-                              // [ADDED] Force uppercase as user types
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[A-Za-z0-9]')),
-                                _UpperCaseTextFormatter(),
-                              ],
-                              // [ADDED] PAN validation — only if filled (optional)
-                              // Regex: 5 letters + 4 digits + 1 letter
-                              validator: (v) {
-                                if (v == null || v.trim().isEmpty) {
-                                  return null; // optional — skip if empty
-                                }
-                                if (!RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$')
-                                    .hasMatch(v.trim())) {
-                                  return 'Please enter a valid PAN number';
-                                }
-                                return null;
-                              },
-                            ),
+                            // PAN number
+                            // _buildField(
+                            //   controller: _panController,
+                            //   label: 'PAN Number (Optional)',
+                            //   hint: 'Enter your PAN number (e.g. ABCDE1234F)',
+                            //   icon: Icons.credit_card_outlined,
+                            //   keyboardType: TextInputType.text,
+                            //   maxLength: 10,
+                            //   // [ADDED] Force uppercase as user types
+                            //   inputFormatters: [
+                            //     FilteringTextInputFormatter.allow(
+                            //         RegExp(r'[A-Za-z0-9]')),
+                            //     _UpperCaseTextFormatter(),
+                            //   ],
+                            //   // [ADDED] PAN validation — only if filled (optional)
+                            //   // Regex: 5 letters + 4 digits + 1 letter
+                            //   validator: (v) {
+                            //     if (v == null || v.trim().isEmpty) {
+                            //       return null; // optional — skip if empty
+                            //     }
+                            //     if (!RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$')
+                            //         .hasMatch(v.trim())) {
+                            //       return 'Please enter a valid PAN number';
+                            //     }
+                            //     return null;
+                            //   },
+                            // ),
 
                             const SizedBox(height: 28),
 
@@ -668,6 +717,9 @@ void _submit() {
           validator: validator,
           maxLength: maxLength,
           readOnly: isVerified,
+          onChanged: (_) {                                    
+            if (_emailError != null) setState(() => _emailError = null);
+          },
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
@@ -756,13 +808,13 @@ void _submit() {
 }
 
 // [ADDED] TextInputFormatter that auto-uppercases PAN input as user types
-class _UpperCaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    return newValue.copyWith(text: newValue.text.toUpperCase());
-  }
-}
+// class _UpperCaseTextFormatter extends TextInputFormatter {
+//   @override
+//   TextEditingValue formatEditUpdate(
+//       TextEditingValue oldValue, TextEditingValue newValue) {
+//     return newValue.copyWith(text: newValue.text.toUpperCase());
+//   }
+// }
 
 // ── OTP Bottom Sheet ──────────────────────────────────────────────────────────
 
