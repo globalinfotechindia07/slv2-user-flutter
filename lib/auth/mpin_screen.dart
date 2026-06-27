@@ -167,7 +167,7 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
       if (customer.isNotEmpty) await AuthService.saveCustomer(customer);
 
       await AuthService.saveSession(
-        userId: customer['id']?.toString() ?? '',
+        userId: (customer['customerId'] ?? customer['id'])?.toString() ?? '',
         phone: phone,
         user: customer,
       );

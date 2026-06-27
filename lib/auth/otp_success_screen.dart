@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -13,21 +14,16 @@ import '../auth/mpin_screen.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 //  OtpVerificationScreen
 //
-//  Three visual states (mirrors React's isVerified / showOTP / phone-entry):
-//    1. Phone entry   — user types 10-digit number → "Get Verification Code"
+//  Three visual states:
+//    1. Phone entry   — user types number via intl_phone_number_input
 //    2. OTP entry     — 6 boxes, 30 s countdown, resend, shake on error
 //    3. Verified      — bouncing checkmark + dots → smart routing
 //
-//  Post-verify routing (from otp_screen.dart):
-//    • New user (not registered)         → ProfileSetupScreen
-//    • Registered, no MPIN              → MpinSetupScreen
-//    • Registered + MPIN                → MpinScreen
+//  SIM picker dialog shows EVERY TIME the phone-entry screen is displayed.
 // ─────────────────────────────────────────────────────────────────────────────
 class OtpVerificationScreen extends StatefulWidget {
-  /// Optional: if provided the screen opens directly on the OTP step.
   final String? savedPhoneNumber;
-  final String? initialRequestId; 
-  /// Called when the user taps Back on the phone-entry screen.
+  final String? initialRequestId;
   final VoidCallback onBack;
 
   const OtpVerificationScreen({
@@ -41,14 +37,13 @@ class OtpVerificationScreen extends StatefulWidget {
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
 }
 
-// ── Screen states ─────────────────────────────────────────────────────────────
 enum _ScreenState { phone, otp, verified }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     with TickerProviderStateMixin {
   // ── App state ─────────────────────────────────────────────────────────────
   _ScreenState _screenState = _ScreenState.phone;
-  String _phoneNumber = '';
+  String _phoneNumber = '';       // plain 10-digit local number
   final List<String> _otp = List.filled(6, '');
   String _error = '';
   String _requestId = '';
@@ -57,11 +52,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   bool _canResend = false;
   Timer? _countdownTimer;
 
-  // Holds routing data after verify succeeds, used in _navigateAfterVerify
   Map<String, dynamic>? _regResult;
 
-  // ── Text controllers ──────────────────────────────────────────────────────
+  // ── intl_phone_number_input ───────────────────────────────────────────────
   final _phoneController = TextEditingController();
+  PhoneNumber _intlPhoneNumber = PhoneNumber(isoCode: 'IN');
+
+  // ── OTP controllers ───────────────────────────────────────────────────────
   final List<TextEditingController> _otpControllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _otpFocusNodes =
@@ -90,12 +87,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     end: Offset.zero,
   ).animate(CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut));
 
-  // ── Blob ──────────────────────────────────────────────────────────────────
-  // late final AnimationController _blobCtrl = AnimationController(
-  //   vsync: this,
-  //   duration: const Duration(seconds: 20),
-  // )..repeat();
-
   // ── Verified checkmark bounce ─────────────────────────────────────────────
   late final AnimationController _bounceController = AnimationController(
     vsync: this,
@@ -107,17 +98,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   );
 
   late final AnimationController _dot1Controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 600),
-  );
+    vsync: this, duration: const Duration(milliseconds: 600));
   late final AnimationController _dot2Controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 600),
-  );
+    vsync: this, duration: const Duration(milliseconds: 600));
   late final AnimationController _dot3Controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 600),
-  );
+    vsync: this, duration: const Duration(milliseconds: 600));
 
   late final Animation<double> _dot1Anim = Tween<double>(begin: 0, end: -10)
       .animate(CurvedAnimation(parent: _dot1Controller, curve: Curves.easeInOut));
@@ -126,60 +111,47 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   late final Animation<double> _dot3Anim = Tween<double>(begin: 0, end: -10)
       .animate(CurvedAnimation(parent: _dot3Controller, curve: Curves.easeInOut));
 
-  // ── Blob maths ────────────────────────────────────────────────────────────
-  // static Offset _blobOffset(double t) {
-  //   const List<Offset> pos = [
-  //     Offset(0, 0),
-  //     Offset(20, -50),
-  //     Offset(-20, 20),
-  //     Offset(50, 50),
-  //     Offset(0, 0),
-  //   ];
-  //   final seg = (t * 4).floor().clamp(0, 3);
-  //   final lt = (t * 4) - seg;
-  //   return Offset.lerp(pos[seg], pos[seg + 1], lt)!;
-  // }
-
-  // static double _blobScale(double t) {
-  //   const List<double> sc = [1.0, 1.1, 0.9, 0.95, 1.0];
-  //   final seg = (t * 4).floor().clamp(0, 3);
-  //   final lt = (t * 4) - seg;
-  //   return sc[seg] + (sc[seg + 1] - sc[seg]) * lt;
-  // }
-
   // ── Lifecycle ─────────────────────────────────────────────────────────────
- @override
-void initState() {
-  super.initState();
-  debugPrint('initState — savedPhone: "${widget.savedPhoneNumber}", initialRequestId: "${widget.initialRequestId}"');
-  if (widget.savedPhoneNumber != null && widget.savedPhoneNumber!.isNotEmpty) {
-    _phoneNumber = widget.savedPhoneNumber!;
-    _phoneController.text = _phoneNumber;
-    if (widget.initialRequestId != null && widget.initialRequestId!.isNotEmpty) {
-      _requestId = widget.initialRequestId!;
-    }
-  }
-  for (final f in _otpFocusNodes) {
-    f.addListener(() => setState(() {}));
-  }
-  _phoneFocusNode.addListener(() => setState(() {}));
+  @override
+  void initState() {
+    super.initState();
+    debugPrint('OTP SCREEN initState — savedPhone: "${widget.savedPhoneNumber}"');
+    debugPrint(
+        'initState — savedPhone: "${widget.savedPhoneNumber}", '
+        'initialRequestId: "${widget.initialRequestId}"');
 
-  // After first frame, switch to OTP screen if we have a phone number
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (widget.savedPhoneNumber != null && widget.savedPhoneNumber!.isNotEmpty) {
-      _switchTo(_ScreenState.otp);
-    } else {
-      _fadeCtrl.forward();
+    if (widget.savedPhoneNumber != null &&
+        widget.savedPhoneNumber!.isNotEmpty) {
+      _phoneNumber = widget.savedPhoneNumber!;
+      _phoneController.text = _phoneNumber;
+      _intlPhoneNumber =
+          PhoneNumber(isoCode: 'IN', phoneNumber: _phoneNumber);
+      if (widget.initialRequestId != null &&
+          widget.initialRequestId!.isNotEmpty) {
+        _requestId = widget.initialRequestId!;
+      }
     }
-  });
-}
+
+    for (final f in _otpFocusNodes) {
+      f.addListener(() => setState(() {}));
+    }
+    _phoneFocusNode.addListener(() => setState(() {}));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.savedPhoneNumber != null &&
+          widget.savedPhoneNumber!.isNotEmpty) {
+        _switchTo(_ScreenState.otp);
+      } else {
+        _fadeCtrl.forward();
+      }
+    });
+  }
 
   @override
   void dispose() {
     _countdownTimer?.cancel();
     _shakeCtrl.dispose();
     _fadeCtrl.dispose();
-    // _blobCtrl.dispose();
     _bounceController.dispose();
     _dot1Controller.dispose();
     _dot2Controller.dispose();
@@ -193,13 +165,15 @@ void initState() {
 
   // ── State switcher ────────────────────────────────────────────────────────
   void _switchTo(_ScreenState next, {String requestId = ''}) {
-    debugPrint('_switchTo called — requestId param: "$requestId", current _requestId: "$_requestId"');
+    debugPrint(
+        '_switchTo called — requestId param: "$requestId", '
+        'current _requestId: "$_requestId"');
     setState(() {
       _screenState = next;
       _error = '';
       if (requestId.isNotEmpty) _requestId = requestId;
     });
-     debugPrint('_switchTo after setState — _requestId: "$_requestId"');
+    debugPrint('_switchTo after setState — _requestId: "$_requestId"');
     _fadeCtrl.forward(from: 0);
 
     if (next == _ScreenState.otp) {
@@ -217,35 +191,39 @@ void initState() {
       Future.delayed(const Duration(milliseconds: 400), () {
         if (mounted) _dot3Controller.repeat(reverse: true);
       });
-
-      // Show verified screen for 3 s then navigate
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) _navigateAfterVerify();
       });
     }
   }
 
-  // ── Smart routing (from otp_screen.dart) ──────────────────────────────────
+  // ── Smart routing ─────────────────────────────────────────────────────────
   void _navigateAfterVerify() {
-  if (_regResult == null) return;
+    if (_regResult == null) return;
 
-  final isRegistered = _regResult!['isRegistered'] == true;
-  final hasMpin      = _regResult!['hasMPIN'] == true;
+    final isRegistered = _regResult!['isRegistered'] == true;
+    final hasMpin = _regResult!['hasMPIN'] == true;
 
-  if (!isRegistered) {
-    Navigator.pushReplacement(context,
-      MaterialPageRoute(builder: (_) => ProfileSetupScreen(phone: _phoneNumber)));
-  } else if (!hasMpin) {
-    Navigator.pushReplacement(context,
-      MaterialPageRoute(builder: (_) => MpinSetupScreen(
-        phone: _phoneNumber, profileData: const {})));
-  } else {
-    Navigator.pushReplacement(context,
-      MaterialPageRoute(builder: (_) => MpinScreen(
-        userProfile: {'phoneNumber': _phoneNumber},
-      )));
+    if (!isRegistered) {
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) => ProfileSetupScreen(phone: _phoneNumber)));
+    } else if (!hasMpin) {
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  MpinSetupScreen(phone: _phoneNumber, profileData: const {})));
+    } else {
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) => MpinScreen(
+                    userProfile: {'phoneNumber': _phoneNumber},
+                  )));
+    }
   }
-}
 
   // ── Countdown timer ───────────────────────────────────────────────────────
   void _startCountdown() {
@@ -272,154 +250,163 @@ void initState() {
   }
 
   // ── Phone submit ──────────────────────────────────────────────────────────
-Future<void> _handlePhoneSubmit() async {
-  if (_phoneNumber.length < 10) {
-    setState(() => _error = 'Please enter a valid 10-digit mobile number');
-    return;
-  }
-  // If we already have a requestId (sent from initState), go straight to OTP screen
-  if (_requestId.isNotEmpty) {
-    _switchTo(_ScreenState.otp);
-    return;
-  }
-  setState(() { _error = ''; _loading = true; });
-  try {
-    final result = await ApiService.sendOtp(_phoneNumber);
-    debugPrint('SEND OTP response: $result');
-    final statusCode = result['statusCode'] as int? ?? 0;
-    if (statusCode == 429) {
-      _showRateLimitDialog();
+  Future<void> _handlePhoneSubmit() async {
+    if (_phoneNumber.length < 10) {
+      setState(
+          () => _error = 'Please enter a valid 10-digit mobile number');
       return;
     }
-    if (result['success'] == true) {
-      final data = result['data'];
-      final requestId = (data is Map ? data['request_id'] : null) as String? ?? '';
-      debugPrint('EXTRACTED requestId: "$requestId"');
-      _switchTo(_ScreenState.otp, requestId: requestId);
-    } else {
-      setState(() => _error = result['message'] ?? 'Failed to send OTP');
-    }
-  } catch (e) {
-    setState(() => _error = 'Failed to send OTP. Please try again.');
-  } finally {
-    if (mounted) setState(() => _loading = false);
-  }
-}
-
- Future<void> _handleResendOtp() async {
-  if (!_canResend) return;
-  setState(() => _loading = true);
-  try {
-    final result = await ApiService.resendOtp(_requestId);
-    debugPrint('RESEND OTP response: $result');
-    debugPrint('DEBUG OTP → $result');
-    final statusCode = result['statusCode'] as int? ?? 0;
-
-    if (statusCode == 429) {
-      _showRateLimitDialog();
+    if (_requestId.isNotEmpty) {
+      _switchTo(_ScreenState.otp);
       return;
     }
-    if (result['success'] == true) {
-      // Update request_id if the server issued a new one
-      final newId = result['data']?['request_id'] as String? ?? '';
-      if (newId.isNotEmpty) setState(() => _requestId = newId);
-      _startCountdown();
-    } else if (statusCode == 400) {
-      // Session expired — go back to phone entry
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Session expired. Please start over.')),
-        );
-        _handleChangeNumber();
+    setState(() {
+      _error = '';
+      _loading = true;
+    });
+    try {
+      final result = await ApiService.sendOtp(_phoneNumber);
+      debugPrint('SEND OTP response: $result');
+      final statusCode = result['statusCode'] as int? ?? 0;
+      if (statusCode == 429) {
+        _showRateLimitDialog();
+        return;
       }
-    } else {
-      setState(() => _error = result['message'] ?? 'Failed to resend OTP');
+      if (result['success'] == true) {
+        final data = result['data'];
+        final requestId =
+            (data is Map ? data['request_id'] : null) as String? ?? '';
+        debugPrint('EXTRACTED requestId: "$requestId"');
+        _switchTo(_ScreenState.otp, requestId: requestId);
+      } else {
+        setState(() => _error = result['message'] ?? 'Failed to send OTP');
+      }
+    } catch (e) {
+      setState(() => _error = 'Failed to send OTP. Please try again.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-  } catch (e) {
-    setState(() => _error = 'Failed to resend OTP.');
-  } finally {
-    if (mounted) setState(() => _loading = false);
   }
-}
 
+  Future<void> _handleResendOtp() async {
+    if (!_canResend) return;
+    setState(() => _loading = true);
+    try {
+      final result = await ApiService.resendOtp(_requestId);
+      debugPrint('RESEND OTP response: $result');
+      final statusCode = result['statusCode'] as int? ?? 0;
 
-void _showRateLimitDialog() {
-  int secondsLeft = 300;
-  Timer? dialogTimer;
+      if (statusCode == 429) {
+        _showRateLimitDialog();
+        return;
+      }
+      if (result['success'] == true) {
+        final newId = result['data']?['request_id'] as String? ?? '';
+        if (newId.isNotEmpty) setState(() => _requestId = newId);
+        _startCountdown();
+      } else if (statusCode == 400) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Session expired. Please start over.')),
+          );
+          _handleChangeNumber();
+        }
+      } else {
+        setState(
+            () => _error = result['message'] ?? 'Failed to resend OTP');
+      }
+    } catch (e) {
+      setState(() => _error = 'Failed to resend OTP.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (ctx) {
-      return StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          dialogTimer ??= Timer.periodic(const Duration(seconds: 1), (t) {
-            if (!mounted) { t.cancel(); return; }
-            if (secondsLeft <= 1) {
-              t.cancel();
-              Navigator.of(ctx).pop();
-            } else {
-              setDialogState(() => secondsLeft--);
-            }
-          });
+  void _showRateLimitDialog() {
+    int secondsLeft = 300;
+    Timer? dialogTimer;
 
-          final minutes = (secondsLeft ~/ 60).toString().padLeft(2, '0');
-          final seconds = (secondsLeft % 60).toString().padLeft(2, '0');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            dialogTimer ??=
+                Timer.periodic(const Duration(seconds: 1), (t) {
+              if (!mounted) {
+                t.cancel();
+                return;
+              }
+              if (secondsLeft <= 1) {
+                t.cancel();
+                Navigator.of(ctx).pop();
+              } else {
+                setDialogState(() => secondsLeft--);
+              }
+            });
 
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Row(
-              children: [
-                Icon(Icons.timer_outlined, color: Color(0xFFEF4444)),
-                SizedBox(width: 8),
-                Text('Too Many Attempts'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'You have made too many OTP requests. '
-                  'Please wait before trying again.',
-                  style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(12),
+            final minutes =
+                (secondsLeft ~/ 60).toString().padLeft(2, '0');
+            final seconds =
+                (secondsLeft % 60).toString().padLeft(2, '0');
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.timer_outlined, color: Color(0xFFEF4444)),
+                  SizedBox(width: 8),
+                  Text('Too Many Attempts'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'You have made too many OTP requests. '
+                    'Please wait before trying again.',
+                    style: TextStyle(
+                        fontSize: 14, color: Color(0xFF475569)),
                   ),
-                  child: Text(
-                    '$minutes:$seconds',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFEF4444),
-                      letterSpacing: 4,
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$minutes:$seconds',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFEF4444),
+                        letterSpacing: 4,
+                      ),
                     ),
                   ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: null,
+                  child: Text(
+                    'Please wait ($minutes:$seconds)',
+                    style: const TextStyle(color: Color(0xFF94A3B8)),
+                  ),
                 ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: null,
-                child: Text(
-                  'Please wait ($minutes:$seconds)',
-                  style: const TextStyle(color: Color(0xFF94A3B8)),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  ).then((_) => dialogTimer?.cancel());
-}
+            );
+          },
+        );
+      },
+    ).then((_) => dialogTimer?.cancel());
+  }
 
   // ── OTP digit change ──────────────────────────────────────────────────────
   Future<void> _handleOtpChange(String val, int idx) async {
@@ -446,50 +433,49 @@ void _showRateLimitDialog() {
     }
   }
 
-  // ── Backspace ─────────────────────────────────────────────────────────────
   void _handleBackspace(int idx) {
     if (_otpControllers[idx].text.isEmpty && idx > 0) {
       _otpFocusNodes[idx - 1].requestFocus();
     }
   }
 
-  // ── Verify OTP + smart routing ────────────────────────────────────────────
-Future<void> _verifyOtp(String enteredOtp) async {
-  setState(() => _loading = true);
-  debugPrint('VERIFY → requestId: $_requestId, otp: $enteredOtp');
-  try {
-    final result = await ApiService.verifyOtp(_requestId, enteredOtp);
-    final statusCode = result['statusCode'] as int? ?? 0;
+  // ── Verify OTP ────────────────────────────────────────────────────────────
+  Future<void> _verifyOtp(String enteredOtp) async {
+    setState(() => _loading = true);
+    debugPrint('VERIFY → requestId: $_requestId, otp: $enteredOtp');
+    try {
+      final result = await ApiService.verifyOtp(_requestId, enteredOtp);
+      final statusCode = result['statusCode'] as int? ?? 0;
 
-    if (statusCode == 429) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Too many attempts. Please slow down.')),
-      );
-      return;
-    }
+      if (statusCode == 429) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Too many attempts. Please slow down.')),
+        );
+        return;
+      }
 
-    if (result['success'] == true) {
-      final data = result['data'] as Map<String, dynamic>? ?? {};
-      debugPrint('VERIFY RESULT data: $data'); 
-      final tempToken = data['tempToken'] as String? ?? '';
-      if (tempToken.isNotEmpty) await AuthService.saveTempToken(tempToken);
+      if (result['success'] == true) {
+        final data = result['data'] as Map<String, dynamic>? ?? {};
+        debugPrint('VERIFY RESULT data: $data');
+        final tempToken = data['tempToken'] as String? ?? '';
+        if (tempToken.isNotEmpty) await AuthService.saveTempToken(tempToken);
 
-      // The verify response itself tells us where to route
-      _regResult = data;
-      if (mounted) _switchTo(_ScreenState.verified);
-    } else {
-      setState(() => _error = 'Invalid OTP or OTP has expired.');
+        _regResult = data;
+        if (mounted) _switchTo(_ScreenState.verified);
+      } else {
+        setState(() => _error = 'Invalid OTP or OTP has expired.');
+        _triggerShake();
+        _clearOtp();
+      }
+    } catch (e) {
+      setState(() => _error = 'Verification failed. Please try again.');
       _triggerShake();
       _clearOtp();
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-  } catch (e) {
-    setState(() => _error = 'Verification failed. Please try again.');
-    _triggerShake();
-    _clearOtp();
-  } finally {
-    if (mounted) setState(() => _loading = false);
   }
-}
 
   void _triggerShake() =>
       _shakeCtrl.forward(from: 0).then((_) => _shakeCtrl.reset());
@@ -501,24 +487,24 @@ Future<void> _verifyOtp(String enteredOtp) async {
         .addPostFrameCallback((_) => _otpFocusNodes[0].requestFocus());
   }
 
-  // ── Back ──────────────────────────────────────────────────────────────────
+  // ── Navigation helpers ────────────────────────────────────────────────────
   void _handleBack() {
     if (_screenState == _ScreenState.otp) {
       _countdownTimer?.cancel();
       _clearOtp();
-      _switchTo(_ScreenState.phone);
     } else {
       widget.onBack();
     }
   }
 
-  // ── Change number ─────────────────────────────────────────────────────────
   void _handleChangeNumber() {
     _countdownTimer?.cancel();
     _clearOtp();
     _phoneController.clear();
-    setState(() => _phoneNumber = '');
-    _switchTo(_ScreenState.phone);
+    setState(() {
+      _phoneNumber = '';
+      _intlPhoneNumber = PhoneNumber(isoCode: 'IN');
+    });
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -528,7 +514,6 @@ Future<void> _verifyOtp(String enteredOtp) async {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -542,66 +527,7 @@ Future<void> _verifyOtp(String enteredOtp) async {
               ),
             ),
           ),
-
-          // Grid pattern
           Positioned.fill(child: CustomPaint(painter: _GridPainter())),
-
-          // Red blob — top-right
-          // AnimatedBuilder(
-          //   animation: _blobCtrl,
-          //   builder: (_, __) {
-          //     final off = _blobOffset(_blobCtrl.value);
-          //     final sc = _blobScale(_blobCtrl.value);
-          //     return Positioned(
-          //       right: -160 + off.dx,
-          //       top: 80 + off.dy,
-          //       child: Transform.scale(
-          //         scale: sc,
-          //         child: ImageFiltered(
-          //           imageFilter: ImageFilter.blur(sigmaX: 48, sigmaY: 48),
-          //           child: Container(
-          //             width: 384,
-          //             height: 384,
-          //             decoration: BoxDecoration(
-          //               shape: BoxShape.circle,
-          //               color: const Color(0xFFFEE2E2).withOpacity(0.30),
-          //             ),
-          //           ),
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
-
-          // Blue blob — bottom-left
-          // AnimatedBuilder(
-          //   animation: _blobCtrl,
-          //   builder: (_, __) {
-          //     final t = (_blobCtrl.value + 0.10) % 1.0;
-          //     final off = _blobOffset(t);
-          //     final sc = _blobScale(t);
-          //     return Positioned(
-          //       left: -160 + off.dx,
-          //       bottom: 80 + off.dy,
-          //       child: Transform.scale(
-          //         scale: sc,
-          //         child: ImageFiltered(
-          //           imageFilter: ImageFilter.blur(sigmaX: 48, sigmaY: 48),
-          //           child: Container(
-          //             width: 384,
-          //             height: 384,
-          //             decoration: BoxDecoration(
-          //               shape: BoxShape.circle,
-          //               color: const Color(0xFFDBEAFE).withOpacity(0.30),
-          //             ),
-          //           ),
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
-
-          // Main content
           SafeArea(
             child: Center(
               child: ConstrainedBox(
@@ -641,7 +567,8 @@ Future<void> _verifyOtp(String enteredOtp) async {
                                   borderRadius: BorderRadius.circular(8),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.06),
+                                      color:
+                                          Colors.black.withOpacity(0.06),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),
@@ -778,9 +705,11 @@ Future<void> _verifyOtp(String enteredOtp) async {
           children: [
             _BouncingDot(animation: _dot1Anim, color: AppColors.primary),
             const SizedBox(width: 6),
-            _BouncingDot(animation: _dot2Anim, color: const Color(0xFF22C55E)),
+            _BouncingDot(
+                animation: _dot2Anim, color: const Color(0xFF22C55E)),
             const SizedBox(width: 6),
-            _BouncingDot(animation: _dot3Anim, color: AppColors.secondary),
+            _BouncingDot(
+                animation: _dot3Anim, color: AppColors.secondary),
           ],
         ),
       ],
@@ -899,8 +828,8 @@ Future<void> _verifyOtp(String enteredOtp) async {
         if (!_canResend)
           RichText(
             text: TextSpan(
-              style:
-                  const TextStyle(fontSize: 14, color: AppColors.textGrey),
+              style: const TextStyle(
+                  fontSize: 14, color: AppColors.textGrey),
               children: [
                 const TextSpan(text: 'Request new code in '),
                 TextSpan(
@@ -924,7 +853,8 @@ Future<void> _verifyOtp(String enteredOtp) async {
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppColors.secondary),
+                            strokeWidth: 2,
+                            color: AppColors.secondary),
                       ),
                       SizedBox(width: 8),
                       Text(
@@ -950,10 +880,8 @@ Future<void> _verifyOtp(String enteredOtp) async {
     );
   }
 
-  // ── STATE 1 — Phone Entry ─────────────────────────────────────────────────
+  // ── STATE 1 — Phone Entry (with intl_phone_number_input) ──────────────────
   Widget _buildPhoneStep() {
-    final isFocused = _phoneFocusNode.hasFocus;
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -997,15 +925,19 @@ Future<void> _verifyOtp(String enteredOtp) async {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
+
+        // ── intl_phone_number_input field ──────────────────────────────────
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isFocused ? AppColors.primary : const Color(0xFFE2E8F0),
+              color: _phoneFocusNode.hasFocus
+                  ? AppColors.primary
+                  : const Color(0xFFE2E8F0),
               width: 2,
             ),
-            boxShadow: isFocused
+            boxShadow: _phoneFocusNode.hasFocus
                 ? [
                     BoxShadow(
                       color: AppColors.primary.withOpacity(0.15),
@@ -1021,46 +953,51 @@ Future<void> _verifyOtp(String enteredOtp) async {
                     ),
                   ],
           ),
-          child: Row(
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 14),
-                child: Text(
-                  '+91',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF94A3B8),
-                  ),
-                ),
-              ),
-              Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
-              Expanded(
-                child: TextField(
-                  controller: _phoneController,
-                  focusNode: _phoneFocusNode,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(10),
-                  ],
-                  style: const TextStyle(
-                      fontSize: 17, color: AppColors.textDark),
-                  decoration: const InputDecoration(
-                    hintText: 'Enter mobile number',
-                    hintStyle:
-                        TextStyle(color: Color(0xFFCBD5E1), fontSize: 16),
-                    border: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 14, vertical: 18),
-                  ),
-                  onChanged: (val) => setState(() => _phoneNumber = val),
-                  onSubmitted: (_) => _handlePhoneSubmit(),
-                ),
-              ),
-            ],
+          child: InternationalPhoneNumberInput(
+            // Lock to India only — remove `countries` to allow all countries
+            countries: const ['IN'],
+            onInputChanged: (PhoneNumber number) {
+              final raw = number.phoneNumber ?? '';
+              final cleaned = raw.replaceAll(RegExp(r'\D'), '');
+              final local = cleaned.length > 10
+                  ? cleaned.substring(cleaned.length - 10)
+                  : cleaned;
+              setState(() {
+                _phoneNumber = local;
+                _intlPhoneNumber = number;
+              });
+            },
+            onInputValidated: (bool isValid) {
+              // Optionally surface validation state
+            },
+            selectorConfig: const SelectorConfig(
+              selectorType: PhoneInputSelectorType.DROPDOWN,
+              showFlags: true,
+              useEmoji: false,
+              setSelectorButtonAsPrefixIcon: true,
+            ),
+            ignoreBlank: false,
+            autoValidateMode: AutovalidateMode.disabled,
+            initialValue: _intlPhoneNumber,
+            textFieldController: _phoneController,
+            focusNode: _phoneFocusNode,
+            formatInput: false, // keep raw digits
+            keyboardType: const TextInputType.numberWithOptions(
+                signed: true, decimal: true),
+            inputDecoration: const InputDecoration(
+              hintText: 'Enter mobile number',
+              hintStyle:
+                  TextStyle(color: Color(0xFFCBD5E1), fontSize: 16),
+              border: InputBorder.none,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+            ),
+            textStyle: const TextStyle(
+                fontSize: 17, color: AppColors.textDark),
+            onSubmit: _handlePhoneSubmit,
           ),
         ),
+
         if (_error.isNotEmpty) ...[
           const SizedBox(height: 8),
           Row(
@@ -1077,6 +1014,8 @@ Future<void> _verifyOtp(String enteredOtp) async {
           ),
         ],
         const SizedBox(height: 20),
+
+        // Submit button
         Stack(
           clipBehavior: Clip.none,
           children: [
@@ -1106,7 +1045,8 @@ Future<void> _verifyOtp(String enteredOtp) async {
                 onPressed: _loading ? null : _handlePhoneSubmit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  disabledBackgroundColor: AppColors.primary.withOpacity(0.7),
+                  disabledBackgroundColor:
+                      AppColors.primary.withOpacity(0.7),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
@@ -1127,7 +1067,8 @@ Future<void> _verifyOtp(String enteredOtp) async {
                           SizedBox(width: 10),
                           Text('Sending Code...',
                               style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600)),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600)),
                         ],
                       )
                     : const Row(
@@ -1135,7 +1076,8 @@ Future<void> _verifyOtp(String enteredOtp) async {
                         children: [
                           Text('Get Verification Code',
                               style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600)),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600)),
                           SizedBox(width: 8),
                           Icon(Icons.arrow_forward, size: 18),
                         ],
@@ -1249,7 +1191,8 @@ class _BouncingDot extends StatelessWidget {
         child: Container(
           width: 10,
           height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          decoration:
+              BoxDecoration(color: color, shape: BoxShape.circle),
         ),
       ),
     );

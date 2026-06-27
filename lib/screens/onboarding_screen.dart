@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // ── Constants matching React exactly ─────────────────────────────────────────
 const Color _red = Color(0xFFE11D48);       // accent for pages 0,2
@@ -148,6 +149,36 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           .then((_) => setState(() => _isAnimating = false));
     }
   }
+  Future<void> _requestPermissionsAndProceed() async {
+  // Request all permissions at once
+  final statuses = await [
+    Permission.phone,
+    Permission.sms,
+    Permission.contacts,
+    Permission.camera,
+  ].request();
+
+  final allGranted = statuses.values.every(
+    (s) => s.isGranted || s.isPermanentlyDenied,
+  );
+
+  if (!allGranted) {
+    // Show a gentle nudge — don't block, just inform
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Some permissions were denied. You can enable them in Settings.',
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  // Always proceed regardless
+  _goToLogin();
+}
 
   // Blob keyframe: translate(x,y) scale — approximated with sin/cos
   // 0%: (0,0) scale(1)  25%: (20,-50) scale(1.1)
@@ -280,7 +311,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                   const EdgeInsets.symmetric(horizontal: 12),
                             ),
                             GestureDetector(
-                              onTap: _goToLogin, // handleSkip
+                              onTap: _requestPermissionsAndProceed,
                               child: const Text(
                                 'Skip',
                                 style: TextStyle(
@@ -346,13 +377,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     child: isLast
                         ? _GetStartedButton(
                             accent: page.accent,
-                            onTap: _goToLogin,
+                            onTap: _requestPermissionsAndProceed,  // ← changed
                           )
                         : _ContinueButton(
                             onTap: _nextStep,
                             isAnimating: _isAnimating,
                           ),
-                  ),
+                  )
                 ],
               ),
             ),

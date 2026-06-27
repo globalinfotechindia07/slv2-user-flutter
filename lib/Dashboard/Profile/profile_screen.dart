@@ -205,9 +205,7 @@ class UserInfo {
 // ─── ProfileScreen ─────────────────────────────────────────────────────────────
 
 class ProfileScreen extends StatefulWidget {
-  final Map<String, dynamic> userProfile;
-
-  const ProfileScreen({super.key, required this.userProfile});
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -229,9 +227,7 @@ class _ProfileScreenState extends State<ProfileScreen>{
   @override
   void initState() {
     super.initState();
-    debugPrint('DEBUG ProfileScreen userProfile: ${widget.userProfile}');
-    debugPrint('DEBUG ProfileScreen id: ${widget.userProfile['id']}');
-
+    debugPrint('DEBUG ProfileScreen initState');
     // _blobController = AnimationController(
     //   vsync: this,
     //   duration: const Duration(seconds: 8),
@@ -252,43 +248,76 @@ class _ProfileScreenState extends State<ProfileScreen>{
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
 
-  Future<void> _fetchUserData() async {
-    try {
-      String id = widget.userProfile['id']?.toString() ?? '';
-      if (id.isEmpty) {
-        id = await AuthService.getUserId();
+Future<void> _fetchUserData() async {
+  // Step 1: Load cached data instantly so screen isn't blank
+  final cached = await AuthService.getCustomer();
+  if (cached != null && cached.isNotEmpty) {
+    _applyProfileData(cached);
+  }
+
+  // Step 2: Fetch fresh data from v2 endpoint
+  try {
+    final response = await ApiService.getProfile();
+    debugPrint('DEBUG getProfile response: $response');
+
+    final statusCode = response['statusCode'];
+    if (statusCode == 401) {
+      if (cached == null) {
+        setState(() => _error = 'Session expired. Please login again.');
       }
-      debugPrint('DEBUG fetching user id: $id');
-      if (id.isEmpty) {
-        setState(() => _error = 'User not found. Please log in again.');
-        return;
+      return;
+    }
+    if (statusCode == 404) {
+      if (cached == null) {
+        setState(() => _error = 'Profile not found.');
       }
-      final data = await ApiService.getUserById(id);
-      debugPrint('DEBUG user data: $data');
-      setState(() {
-        _userInfo = UserInfo(
-          id: data['id']?.toString() ?? '',
-          name: data['name']?.toString() ?? '',
-          email: data['email']?.toString() ?? '',
-          phoneNumber: data['phone_number']?.toString() ?? '',
-          profileImage: data['profile_image']?.toString() ?? '',
-          aadhaarNumber: data['aadhaar_number']?.toString() ?? '',
-          panNumber: data['pan_number']?.toString() ?? '',
-          address: data['address']?.toString() ?? '',
-          dob: data['dob']?.toString() ?? '',
-          gender: data['gender']?.toString() ?? '',
-        );
-        if (data['profile_image'] != null &&
-            data['profile_image'].toString().isNotEmpty) {
-          _profileImage =
-              '${ApiConstants.userBaseUrl}/${data['profile_image']}';
-        }
-      });
-    } catch (err) {
-      debugPrint('DEBUG fetch error: $err');
-      setState(() => _error = 'Failed to fetch user data');
+      return;
+    }
+    if (response['success'] != true) {
+      if (cached == null) {
+        setState(() => _error = response['message']?.toString() ?? 'Failed to fetch profile');
+      }
+      return;
+    }
+
+    final data = response['data'] as Map<String, dynamic>? ?? {};
+    debugPrint('DEBUG profile data: $data');
+
+    // Save fresh data to cache
+    await AuthService.saveCustomer(data);
+
+    // Update UI with fresh data
+    _applyProfileData(data);
+  } catch (err) {
+    debugPrint('DEBUG fetch error: $err');
+    // Only show error if we have nothing cached to show
+    if (cached == null || cached.isEmpty) {
+      setState(() => _error = 'Failed to fetch profile');
     }
   }
+}
+
+void _applyProfileData(Map<String, dynamic> data) {
+  setState(() {
+    _userInfo = UserInfo(
+      id: data['customerId']?.toString() ?? '',
+      name: data['fullName']?.toString() ?? '',
+      email: data['email']?.toString() ?? '',
+      phoneNumber: data['phoneNumber']?.toString() ?? '',
+      profileImage: data['profileImage']?.toString() ?? '',
+      aadhaarNumber: '',
+      panNumber: '',
+      address: data['address']?.toString() ?? '',
+      dob: data['dob']?.toString() ?? '',
+      gender: data['gender']?.toString() ?? '',
+    );
+    if (data['profileImage'] != null &&
+        data['profileImage'].toString().isNotEmpty) {
+      _profileImage =
+          '${ApiConstants.newAuthBaseUrl}/${data['profileImage']}';
+    }
+  });
+}
 
   // ── Image Upload ───────────────────────────────────────────────────────────
 

@@ -180,7 +180,21 @@ static Future<Map<String, dynamic>> setupProfile({
 }
 
  
-  static Future<Map<String, dynamic>> checkUserRegistration(
+  static Future<Map<String, dynamic>> getProfile() async {
+  final token = await AuthService.getAccessToken();
+  final response = await http.get(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile-auth/profile'),
+    headers: {
+      ..._headers,
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    },
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+static Future<Map<String, dynamic>> checkUserRegistration(
       String phoneNumber) async {
     final response = await http.post(
       Uri.parse(

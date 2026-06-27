@@ -135,14 +135,17 @@ class _AppSidebarState extends State<AppSidebar>
   // Mirrors React's fetchUserData
 Future<void> _fetchUserData() async {
   try {
-    final data = await ApiService.getUserById(widget.userId);
-    if (data['profile_image'] != null &&
-        (data['profile_image'] as String).isNotEmpty) {
-      setState(() {
-        _profileImageUrl =
-            '${ApiConstants.userBaseUrl}/${data['profile_image']}';
-        _imageError = false;
-      });
+    final response = await ApiService.getProfile();
+    if (response['success'] == true) {
+      final data = response['data'] as Map<String, dynamic>? ?? {};
+      final image = data['profileImage']?.toString() ?? '';
+      if (image.isNotEmpty) {
+        setState(() {
+          _profileImageUrl =
+              '${ApiConstants.newAuthBaseUrl}/$image';
+          _imageError = false;
+        });
+      }
     }
   } catch (_) {
     setState(() => _imageError = true);
@@ -166,9 +169,7 @@ Future<void> _fetchUserData() async {
     switch (item.path) {
       case '/app/profile':
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => ProfileScreen(
-            userProfile: {'id': widget.userId},
-          ),
+          builder: (_) => ProfileScreen(),
         ));
         break;
 

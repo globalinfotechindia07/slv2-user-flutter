@@ -116,20 +116,49 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     // Navigate after 2500ms — check login state first
+// Navigate after 2500ms — check login state first
 Future.delayed(const Duration(milliseconds: 2500), () async {
   if (!mounted) return;
   try {
-    final result = await ApiService.verifyUserToken();
+    final isLoggedIn = await AuthService.isLoggedIn();
+    final accessToken = await AuthService.getAccessToken();
+
     if (!mounted) return;
-    if (result['success'] == true) {
-      final userProfile = Map<String, dynamic>.from(result['user'] ?? {});
+
+    if (isLoggedIn && accessToken != null && accessToken.isNotEmpty) {
+      // Try to fetch fresh profile from v2 endpoint
+      try {
+        final result = await ApiService.getProfile();
+        if (!mounted) return;
+
+        if (result['statusCode'] == 200 && result['success'] == true) {
+          final data = result['data'] as Map<String, dynamic>? ?? {};
+          // Save fresh profile to local storage
+          await AuthService.saveCustomer(data);
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MpinScreen(userProfile: data),
+            ),
+          );
+          return;
+        }
+      } catch (_) {
+        // Network error — fall back to cached profile
+      }
+
+      // Network unavailable or token expired — use cached customer data
+      final cached = await AuthService.getCustomer();
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => MpinScreen(userProfile: userProfile),
+          builder: (_) => MpinScreen(userProfile: cached ?? {}),
         ),
       );
     } else {
+      // No session — go to onboarding
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const OnboardingScreen()),
@@ -142,7 +171,7 @@ Future.delayed(const Duration(milliseconds: 2500), () async {
       MaterialPageRoute(builder: (_) => const OnboardingScreen()),
     );
   }
-});  
+}); 
 }
 
   @override

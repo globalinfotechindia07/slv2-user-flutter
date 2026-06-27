@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../auth/otp_success_screen.dart';
 import '../services/api_service.dart';
+import 'dart:io';
+import 'package:sim_card_info/sim_card_info.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -74,6 +76,155 @@ Future<void> _getVerificationCode() async {
   } finally {
     if (mounted) setState(() => _loading = false);
   }
+}
+
+// ── SIM card state ─────────────────────────────────────────────────────
+List<Map<String, String>> _simCards = [];
+
+String _toLocal(String raw) {
+  final cleaned = raw.replaceAll(RegExp(r'\D'), '');
+  return cleaned.length > 10 ? cleaned.substring(cleaned.length - 10) : cleaned;
+}
+
+@override
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _fetchAndShowSimDialog();
+  });
+}
+
+Future<void> _fetchAndShowSimDialog() async {
+  if (!Platform.isAndroid) return;
+  try {
+    final simCards = await SimCardInfo().getSimInfo() ?? [];
+    final filtered = simCards
+        .where((s) => s.number != null && s.number!.isNotEmpty)
+        .map((s) => <String, String>{
+              'number': s.number ?? '',
+              'slot': s.slotIndex ?? '1',
+              'carrier': s.carrierName ?? '',
+            })
+        .toList();
+    if (mounted) setState(() => _simCards = filtered);
+  } catch (e) {
+    debugPrint('SIM fetch error: $e');
+  }
+  if (mounted) {
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _showSimPickerDialog();
+    });
+  }
+}
+
+void _showSimPickerDialog() {
+  FocusScope.of(context).unfocus();
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    backgroundColor: Colors.white,
+    isDismissible: true,
+    enableDrag: true,
+    builder: (_) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text('Select Phone Number',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+              const SizedBox(height: 4),
+              Text('Choose a SIM to auto-fill, or add manually',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+              const SizedBox(height: 16),
+              if (_simCards.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text('No SIM numbers detected.',
+                      style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+                )
+              else
+                ..._simCards.map((sim) {
+                  final local = _toLocal(sim['number'] ?? '');
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _phoneController.text = local;
+                      _onPhoneChanged(local);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFDC2626).withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDC2626).withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.sim_card, size: 20, color: Color(0xFFDC2626)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('+91 $local',
+                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                                if ((sim['carrier'] ?? '').isNotEmpty)
+                                  Text('${sim['carrier']} • SIM ${sim['slot']}',
+                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFDC2626)),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Add Manually'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF475569),
+                    side: const BorderSide(color: Color(0xFFE2E8F0), width: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
   @override
