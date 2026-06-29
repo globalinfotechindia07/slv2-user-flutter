@@ -642,8 +642,8 @@ class _LoansSectionState extends State<_LoansSection> {
 
   Future<void> _fetchLoans() async {
     try {
-      final response = await ApiService.listPopularServices();
-      final list = response['list'] as List<dynamic>? ?? [];
+      final response = await ApiService.listPopularServicesV2();
+      final list = response['data'] as List<dynamic>? ?? [];
       setState(() {
         _personalLoans =
             list.where((s) => s['pstype'] == 'personal-financial').toList();
@@ -861,8 +861,8 @@ class _BankingSectionState extends State<_BankingSection> {
 
   Future<void> _fetchServices() async {
     try {
-      final response = await ApiService.listPopularServices();
-      final list = response['list'] as List<dynamic>? ?? [];
+      final response = await ApiService.listPopularServicesV2();
+      final list = response['data'] as List<dynamic>? ?? [];
       setState(() {
         _services = list.where((s) => s['pstype'] == 'banking').toList();
         _loading = false;
@@ -901,6 +901,7 @@ class _BankingSectionState extends State<_BankingSection> {
                   color: AppColors.textDark)),
           const SizedBox(height: 12),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -988,8 +989,8 @@ class _InvestmentSectionState extends State<_InvestmentSection> {
 
   Future<void> _fetchServices() async {
     try {
-      final response = await ApiService.listPopularServices();
-      final list = response['list'] as List<dynamic>? ?? [];
+      final response = await ApiService.listPopularServicesV2();
+      final list = response['data'] as List<dynamic>? ?? [];
       setState(() {
         _services = list.where((s) => s['pstype'] == 'investment').toList();
         _loading = false;
@@ -1027,7 +1028,8 @@ class _InvestmentSectionState extends State<_InvestmentSection> {
                   fontWeight: FontWeight.bold,
                   color: AppColors.textDark)),
           const SizedBox(height: 12),
-          Container(
+         Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -1115,8 +1117,8 @@ class _InsuranceSectionState extends State<_InsuranceSection> {
 
   Future<void> _fetchServices() async {
     try {
-      final response = await ApiService.listPopularServices();
-      final list = response['list'] as List<dynamic>? ?? [];
+      final response = await ApiService.listPopularServicesV2();
+      final list = response['data'] as List<dynamic>? ?? [];
       setState(() {
         _services = list.where((s) => s['pstype'] == 'insurance').toList();
         _loading = false;
@@ -1144,6 +1146,7 @@ class _InsuranceSectionState extends State<_InsuranceSection> {
                   color: AppColors.textDark)),
           const SizedBox(height: 12),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -1332,6 +1335,7 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
                   color: AppColors.textDark)),
           const SizedBox(height: 12),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,

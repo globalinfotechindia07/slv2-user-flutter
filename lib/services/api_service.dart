@@ -270,6 +270,15 @@ static Future<Map<String, dynamic>> checkUserRegistration(
     return jsonDecode(response.body);
   }
 
+  static Future<Map<String, dynamic>> listPopularServicesV2() async {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/popular-services'),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    data['statusCode'] = response.statusCode;
+    return data;
+  }
+
   // listOffersCard — GET admin/list_OffersCard.php
   static Future<Map<String, dynamic>> listOffersCard() async {
     final response = await http.get(
@@ -278,6 +287,16 @@ static Future<Map<String, dynamic>> checkUserRegistration(
       headers: _headers,
     );
     return jsonDecode(response.body);
+  }
+
+  // listOffersCardV2 — GET /api/v2/mobile/offercards (no auth required)
+  static Future<Map<String, dynamic>> listOffersCardV2() async {
+    final response = await http.get(
+      Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/offercards'),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    data['statusCode'] = response.statusCode;
+    return data;
   }
 
   

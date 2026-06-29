@@ -32,6 +32,11 @@ class OfferData {
       category: json['category']?.toString() ?? '',
     );
   }
+
+  // Extra fields from v2 response
+  String get offersColor => '';
+  String get offersTextColor => '';
+  String get offersValue => '';
 }
 
 // ─── BannerCarousel ────────────────────────────────────────────────────────────
@@ -65,19 +70,27 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   Future<void> _fetchOffers() async {
     try {
-      final response = await ApiService.listOffersCard();
-      // React checks response.data.list
-      final list = response['list'] as List<dynamic>? ?? [];
-      final offers = list.map((e) => OfferData.fromJson(e)).toList();
-      final initialPage = offers.length * _kMultiplier;
-      setState(() {
-        _offers = offers;
-        _loading = false;
-        _currentIndex = 0;
-      });
-      _pageController = PageController(initialPage: initialPage);
-      _startTimer();
+      final response = await ApiService.listOffersCardV2();
+      debugPrint('OffersCard response: $response');
+      if (response['success'] == true) {
+        final list = response['data'] as List<dynamic>? ?? [];
+        final offers = list.map((e) => OfferData.fromJson(e)).toList();
+        final initialPage = offers.length * _kMultiplier;
+        setState(() {
+          _offers = offers;
+          _loading = false;
+          _currentIndex = 0;
+        });
+        _pageController = PageController(initialPage: initialPage);
+        _startTimer();
+      } else {
+        setState(() {
+          _error = response['message']?.toString() ?? 'Failed to load offers';
+          _loading = false;
+        });
+      }
     } catch (e) {
+      debugPrint('OffersCard error: $e');
       setState(() {
         _error = 'Failed to load offers';
         _loading = false;
@@ -230,8 +243,8 @@ class _OfferCardState extends State<_OfferCard>
   late AnimationController _scaleCtrl;
   late Animation<double> _scaleAnim;
 
-  // Base URL matching React's import.meta.env.VITE_ADMIN_BASE_URL
-  static final String _baseUrl = ApiConstants.adminBaseUrl;
+  // v2 images are served from the Node server
+  static final String _baseUrl = ApiConstants.newAuthBaseUrl;
 
   @override
   void initState() {
@@ -305,7 +318,7 @@ class _OfferCardState extends State<_OfferCard>
                 AspectRatio(
                   aspectRatio: 16 / 9,
                   child: Image.network(
-                    '$_baseUrl/${widget.offer.imageUrl}',
+                    '$_baseUrl${widget.offer.imageUrl}',
                     fit: BoxFit.cover,
                     loadingBuilder: (_, child, progress) {
                       if (progress == null) return child;
