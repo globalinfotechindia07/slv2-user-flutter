@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/secure_image.dart';
 import '../screens/about_screen.dart';
 import '../Dashboard/ReferFriend.dart';
 import '../Dashboard/Profile/profile_screen.dart';
@@ -114,13 +115,12 @@ class _AppSidebarState extends State<AppSidebar>
   @override
   void didUpdateWidget(covariant AppSidebar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Mirrors React's isOpen conditional rendering with transition
     if (widget.isOpen && !oldWidget.isOpen) {
       _animController.forward();
+      _fetchUserData(); // refetch every time sidebar opens
     } else if (!widget.isOpen && oldWidget.isOpen) {
       _animController.reverse();
     }
-    // Mirrors useEffect([userId]) — refetch if userId changes
     if (widget.userId != oldWidget.userId) {
       _fetchUserData();
     }
@@ -132,23 +132,21 @@ class _AppSidebarState extends State<AppSidebar>
     super.dispose();
   }
 
-  // Mirrors React's fetchUserData
 Future<void> _fetchUserData() async {
   try {
     final response = await ApiService.getProfile();
     if (response['success'] == true) {
       final data = response['data'] as Map<String, dynamic>? ?? {};
       final image = data['profileImage']?.toString() ?? '';
-      if (image.isNotEmpty) {
+      if (mounted) {
         setState(() {
-          _profileImageUrl =
-              '${ApiConstants.newAuthBaseUrl}/$image';
+          _profileImageUrl = image; // just the filename now
           _imageError = false;
         });
       }
     }
   } catch (_) {
-    setState(() => _imageError = true);
+    if (mounted) setState(() => _imageError = true);
   }
 }
 
@@ -289,15 +287,14 @@ Future<void> _fetchUserData() async {
       ),
       child: Row(
         children: [
-          // Profile image — mirrors img with onError fallback
-          _profileImageUrl != null && !_imageError
+          _profileImageUrl != null && _profileImageUrl!.isNotEmpty && !_imageError
               ? ClipOval(
-                  child: Image.network(
-                    _profileImageUrl!,
+                  child: SecureImage(
+                    folder: 'customers',
+                    filename: _profileImageUrl!,
                     width: 48,
                     height: 48,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _placeholderAvatar(),
                   ),
                 )
               : _placeholderAvatar(),

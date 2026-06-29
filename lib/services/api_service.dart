@@ -14,15 +14,15 @@ class ApiConstants {
   //     'https://shubhlabhpatsanstha.org/backend/otp';
   // static const String razorpayKey = 'rzp_test_R7xzyaqsmw9C9O';
     static const String userBaseUrl =
-      'http://192.168.1.5/backend/userss';
+      'http://192.168.1.11/backend/userss';
     static const String adminBaseUrl =
-        'http://192.168.1.5/backend/admin';
+        'http://192.168.1.11/backend/admin';
     static const String otpBaseUrl =
-        'http://192.168.1.5/backend/otp';
+        'http://192.168.1.11/backend/otp';
     static const String servicesBaseUrl =
-        'http://192.168.1.5/backend/services';
+        'http://192.168.1.11/backend/services';
     static const String razorpayKey = 'rzp_test_R7xzyaqsmw9C9O';
-    static const String newAuthBaseUrl = 'http://192.168.1.5:3000';
+    static const String newAuthBaseUrl = 'http://192.168.1.11:3000';
 
 }
 
@@ -180,10 +180,13 @@ static Future<Map<String, dynamic>> setupProfile({
 }
 
  
-  static Future<Map<String, dynamic>> getProfile() async {
+static Future<Map<String, dynamic>> getProfile() async {
   final token = await AuthService.getAccessToken();
+  debugPrint('=== GET PROFILE ===');
+  debugPrint('URL: ${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/profile');
+  debugPrint('token: $token');
   final response = await http.get(
-    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile-auth/profile'),
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/profile'),
     headers: {
       ..._headers,
       if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
@@ -319,7 +322,48 @@ static Future<Map<String, dynamic>> checkUserRegistration(
   }
 
   
-  static Future<Map<String, dynamic>> uploadProfileImage(
+  static Future<Map<String, dynamic>> uploadProfileImageV2(String filePath) async {
+  final token = await AuthService.getAccessToken();
+  final request = http.MultipartRequest(
+    'POST',
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/profile/picture'),
+  );
+  if (token != null && token.isNotEmpty) {
+    request.headers['Authorization'] = 'Bearer $token';
+  }
+
+  String ext = filePath.split('.').last.toLowerCase();
+  if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].contains(ext)) {
+    ext = 'jpg';
+  }
+  final mimeMap = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'webp': 'image/webp',
+    'gif': 'image/gif',
+  };
+  request.files.add(
+    await http.MultipartFile.fromPath(
+      'profileImage',
+      filePath,
+      filename: 'profile.$ext',
+      contentType: MediaType.parse(mimeMap[ext]!),
+    ),
+  );
+
+  debugPrint('UPLOAD URL: ${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/profile/picture');
+  debugPrint('UPLOAD TOKEN: $token');
+  final streamed = await request.send();
+  final response = await http.Response.fromStream(streamed);
+  debugPrint('UPLOAD STATUS: ${response.statusCode}');
+  debugPrint('UPLOAD BODY: ${response.body}');
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+static Future<Map<String, dynamic>> uploadProfileImage(
       String filePath, String userId) async {
     final request = http.MultipartRequest(
       'POST',

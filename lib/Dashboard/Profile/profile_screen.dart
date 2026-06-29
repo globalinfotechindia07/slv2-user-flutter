@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../services/api_service.dart';
 import '../../../services/auth_service.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/secure_image.dart';
 
 // ─── FormSection Widget ────────────────────────────────────────────────────────
 
@@ -222,8 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen>{
   // late Animation<double> _blobAnimation;
 
   // [ADDED] Allowed image extensions — mirrors React's validTypes list
-  static const List<String> _allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-
+  static const List<String> _allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
   @override
   void initState() {
     super.initState();
@@ -281,7 +281,24 @@ Future<void> _fetchUserData() async {
     }
 
     final data = response['data'] as Map<String, dynamic>? ?? {};
-    debugPrint('DEBUG profile data: $data');
+    debugPrint('=== PROFILE FETCH SUCCESS ===');
+    debugPrint('customerId: ${data['customerId']}');
+    debugPrint('fullName: ${data['fullName']}');
+    debugPrint('email: ${data['email']}');
+    debugPrint('phoneNumber: ${data['phoneNumber']}');
+    debugPrint('dob: ${data['dob']}');
+    debugPrint('gender: ${data['gender']}');
+    debugPrint('address: ${data['address']}');
+    debugPrint('profileImage: ${data['profileImage']}');
+    debugPrint('isAadharVerified: ${data['isAadharVerified']}');
+    debugPrint('isPanVerified: ${data['isPanVerified']}');
+    debugPrint('isPhoneVerified: ${data['isPhoneVerified']}');
+    debugPrint('employmentType: ${data['employmentType']}');
+    debugPrint('monthlyIncome: ${data['monthlyIncome']}');
+    debugPrint('=============================');
+
+    // Save fresh data to cache
+    await AuthService.saveCustomer(data);
 
     // Save fresh data to cache
     await AuthService.saveCustomer(data);
@@ -299,18 +316,18 @@ Future<void> _fetchUserData() async {
 
 void _applyProfileData(Map<String, dynamic> data) {
   setState(() {
-    _userInfo = UserInfo(
-      id: data['customerId']?.toString() ?? '',
-      name: data['fullName']?.toString() ?? '',
-      email: data['email']?.toString() ?? '',
-      phoneNumber: data['phoneNumber']?.toString() ?? '',
-      profileImage: data['profileImage']?.toString() ?? '',
-      aadhaarNumber: '',
-      panNumber: '',
-      address: data['address']?.toString() ?? '',
-      dob: data['dob']?.toString() ?? '',
-      gender: data['gender']?.toString() ?? '',
-    );
+   _userInfo = UserInfo(
+        id: data['customerId']?.toString() ?? '',
+        name: data['fullName']?.toString() ?? '',
+        email: data['email']?.toString() ?? '',
+        phoneNumber: data['phoneNumber']?.toString() ?? '',
+        profileImage: data['profileImage']?.toString() ?? '',
+        aadhaarNumber: data['aadharMasked']?.toString() ?? '',
+        panNumber: data['panMasked']?.toString() ?? '',
+        address: data['address']?.toString() ?? '',
+        dob: data['dob']?.toString() ?? '',
+        gender: data['gender']?.toString() ?? '',
+      );
     if (data['profileImage'] != null &&
         data['profileImage'].toString().isNotEmpty) {
       _profileImage =
@@ -322,33 +339,40 @@ void _applyProfileData(Map<String, dynamic> data) {
   // ── Image Upload ───────────────────────────────────────────────────────────
 
   Future<void> _handleImageUpload(File file) async {
-    setState(() {
-      _loading = true;
-      _error = '';
-    });
+  setState(() {
+    _loading = true;
+    _error = '';
+  });
 
-    try {
-      final data =
-          await ApiService.uploadProfileImage(file.path, _userInfo.id);
-      debugPrint('Upload response: $data');    
+  try {
+    final data = await ApiService.uploadProfileImageV2(file.path);
+    debugPrint('=== PROFILE IMAGE UPLOAD ===');
+    debugPrint('statusCode: ${data['statusCode']}');
+    debugPrint('success: ${data['success']}');
+    debugPrint('message: ${data['message']}');
+    debugPrint('data: ${data['data']}');
+    debugPrint('============================');
 
-      if (data['success'] == true) {
-        final imageUrl =
-    '${ApiConstants.userBaseUrl}/${data['image_path']}';
-        setState(() {
-          _profileImage = imageUrl;
-          _userInfo = _userInfo.copyWith(profileImage: data['image_path']);
-        });
-      } else {
-        throw Exception(data['message'] ?? 'Image upload failed');
-      }
-    } catch (err) {
-      debugPrint('Upload error: $err');
-      setState(() => _error = err.toString().replaceFirst('Exception: ', ''));
-    } finally {
-      setState(() => _loading = false);
+    if (data['success'] == true) {
+      final imageFile =
+          (data['data'] as Map<String, dynamic>?)?['profileImage']?.toString() ?? '';
+      debugPrint('New profileImage filename: $imageFile');
+      debugPrint('Full image URL: ${ApiConstants.newAuthBaseUrl}/$imageFile');
+      final imageUrl = '${ApiConstants.newAuthBaseUrl}/$imageFile';
+      setState(() {
+        _profileImage = imageUrl;
+        _userInfo = _userInfo.copyWith(profileImage: imageFile);
+      });
+    } else {
+      throw Exception(data['message'] ?? 'Image upload failed');
     }
+  } catch (err) {
+    debugPrint('Upload error: $err');
+    setState(() => _error = err.toString().replaceFirst('Exception: ', ''));
+  } finally {
+    setState(() => _loading = false);
   }
+}
 
 Future<void> _handleImageChange() async {
   final picker = ImagePicker();
@@ -572,12 +596,13 @@ Future<void> _handleImageChange() async {
                 ],
               ),
               child: ClipOval(
-                child: _profileImage.isNotEmpty
-                    ? Image.network(
-                        _profileImage,
+                child: _userInfo.profileImage.isNotEmpty
+                    ? SecureImage(
+                        folder: 'customers',
+                        filename: _userInfo.profileImage,
+                        width: 128,
+                        height: 128,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            _buildPlaceholderAvatar(),
                       )
                     : _buildPlaceholderAvatar(),
               ),
