@@ -20,32 +20,22 @@ import '../screens/loan_details_screen.dart';
 import '../screens/other_loan_service_details.dart';
 import '../Dashboard/FAQSidebar.dart';
 import '../screens/loan_service_screen.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:lucide_icons_flutter/test_icons.dart' as lucide_test;
+
+
+final Map<String, IconData> _lucideIconLookup = {
+  for (var i = 0; i < lucide_test.icons.length; i++)
+    _normalizeIconName(lucide_test.iconNames[i]): lucide_test.icons[i],
+};
+
+String _normalizeIconName(String name) {
+  return name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+}
 
 IconData getIconFromString(String iconName) {
-  const Map<String, IconData> iconMap = {
-    'smartphone': Icons.phone_android,
-    'truck': Icons.local_shipping_outlined,
-    'car': Icons.directions_car_outlined,
-    'tractor': Icons.agriculture_outlined,
-    'briefcase': Icons.business_outlined,
-    'coins': Icons.monetization_on,
-    'shield': Icons.verified_user_outlined,
-    'gift': Icons.card_giftcard,
-    'piggybank': Icons.savings,
-    'landmark': Icons.account_balance_outlined,
-    'zap': Icons.flash_on,
-    'creditcard': Icons.credit_card,
-    'wallet': Icons.account_balance_wallet_outlined,
-    'barchart3': Icons.bar_chart,
-    'umbrella': Icons.beach_access,
-    'home': Icons.home_outlined,
-    'user': Icons.person_outline,
-    'bell': Icons.notifications_outlined,
-    'linechart': Icons.show_chart,
-    'shieldcheck': Icons.verified_user,
-    'landmarkicon': Icons.account_balance,
-  };
-  return iconMap[iconName.toLowerCase()] ?? Icons.help_outline;
+  if (iconName.isEmpty) return LucideIcons.helpCircle;
+  return _lucideIconLookup[_normalizeIconName(iconName)] ?? LucideIcons.helpCircle;
 }
 
 class HomeScreen extends StatefulWidget {
@@ -1211,6 +1201,24 @@ class _InsuranceSectionState extends State<_InsuranceSection> {
     );
   }
 }
+class _CarouselStatusColors {
+  final Color bg;
+  final Color badgeBg;
+  final Color badgeText;
+  const _CarouselStatusColors(this.bg, this.badgeBg, this.badgeText);
+}
+
+const Map<String, _CarouselStatusColors> _carouselStatusMap = {
+  'pending':   _CarouselStatusColors(Color(0xFFFEFCE8), Color(0xFFFEF9C3), Color(0xFF854D0E)),
+  'approved':  _CarouselStatusColors(Color(0xFFF0FDF4), Color(0xFFDCFCE7), Color(0xFF166534)),
+  'active':    _CarouselStatusColors(Color(0xFFEFF6FF), Color(0xFFDBEAFE), Color(0xFF1E40AF)),
+  'rejected':  _CarouselStatusColors(Color(0xFFFEF2F2), Color(0xFFFEE2E2), Color(0xFF991B1B)),
+  'completed': _CarouselStatusColors(Color(0xFFFAF5FF), Color(0xFFF3E8FF), Color(0xFF6B21A8)),
+  'default':   _CarouselStatusColors(Color(0xFFF9FAFB), Color(0xFFF3F4F6), Color(0xFF1F2937)),
+};
+
+_CarouselStatusColors _statusColors(String status) =>
+    _carouselStatusMap[status.toLowerCase()] ?? _carouselStatusMap['default']!;
 
 // ── My Loans ───────────────────────────────────────────────────────────────
 
@@ -1247,11 +1255,16 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
 
   Future<void> _fetchLoans() async {
     try {
-    final response = await ApiService.getLoanApplications(widget.userId);
-    print('MyLoans response: $response');
-    print('userId used: ${widget.userId}');
-    if (response['success'] == 1) {
-        final loans = response['loanApplications'] ?? [];
+      final response = await ApiService.getLoanApplicationsV2();
+      debugPrint('=== MY LOANS V2 ===');
+      debugPrint('statusCode: ${response['statusCode']}');
+      debugPrint('success: ${response['success']}');
+      debugPrint('message: ${response['message']}');
+      debugPrint('data: ${response['data']}');
+      debugPrint('error: ${response['error']}');
+      debugPrint('===================');
+      if (response['success'] == true) {
+        final loans = response['data'] as List<dynamic>? ?? [];
         setState(() {
           _loans = loans;
           _loading = false;
@@ -1269,6 +1282,7 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
         });
       }
     } catch (e) {
+      debugPrint('MyLoans error: $e');
       setState(() {
         _error = 'Failed to load loans';
         _loading = false;
@@ -1301,23 +1315,6 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted && _loans.length > 1) _startAutoScroll();
     });
-  }
-
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'approved':
-        return Colors.green;
-      case 'rejected':
-        return Colors.red;
-      case 'active':
-        return Colors.blue;
-      case 'disbursed':
-        return Colors.teal;
-      case 'completed':
-        return Colors.purple;
-      default:
-        return Colors.orange;
-    }
   }
 
   @override
@@ -1444,7 +1441,7 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
       children: [
         SizedBox(
           // FIX 1: Increased height to prevent clipping on smaller screens
-          height: 160,
+          height: 128,
           child: PageView.builder(
             controller: _pageController,
             physics: const BouncingScrollPhysics(),
@@ -1455,30 +1452,30 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
             },
             itemBuilder: (context, index) {
               final loan = _loans[index % _loans.length];
-              final status = (loan['status'] ?? 'pending').toString();
-              final statusColor = _statusColor(status);
+              final status = (loan['status'] ?? 'pending').toString().toLowerCase();
+              final cardColors = _statusColors(status);
 
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.05),
+                  color: cardColors.bg,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: statusColor.withOpacity(0.2)),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // ── Top section ──────────────────────────────────────
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Phone icon
                           Padding(
-                            padding: const EdgeInsets.only(top: 2),
+                            padding: const EdgeInsets.only(top: 1),
                             child: Icon(Icons.phone_android,
-                                color: Colors.grey.shade500, size: 18),
+                                color: Colors.grey.shade500, size: 16),
                           ),
                           const SizedBox(width: 8),
 
@@ -1497,7 +1494,9 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${loan['brand'] ?? ''} ${loan['model'] ?? ''}',
+                                  '${loan['brand'] ?? ''} ${loan['model'] ?? ''}'.trim().isEmpty
+                                      ? 'Loan Application'
+                                      : '${loan['brand'] ?? ''} ${loan['model'] ?? ''}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -1509,9 +1508,9 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
                                 const SizedBox(height: 2),
                                 // FIX 6: loan_id on its own line, application_id below
                                 // prevents overflow from combined string
-                                if ((loan['loan_id'] ?? '').toString().isNotEmpty)
+                                if ((loan['loanId'] ?? loan['loan_id'] ?? '').toString().isNotEmpty)
                                   Text(
-                                    loan['loan_id'].toString(),
+                                    (loan['loanId'] ?? loan['loan_id'] ?? '').toString(),
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: Colors.grey.shade500,
@@ -1519,11 +1518,11 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
                                   ),
                                 if (['pending', 'approved', 'disbursed']
                                         .contains(status) &&
-                                    (loan['application_id'] ?? '')
+                                    (loan['applicationId'] ?? loan['application_id'] ?? '')
                                         .toString()
                                         .isNotEmpty)
                                   Text(
-                                    loan['application_id'].toString(),
+                                    (loan['applicationId'] ?? loan['application_id'] ?? '').toString(),
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: Colors.grey.shade500,
@@ -1538,25 +1537,25 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
                           // Righyt: amount + status badge
                           // Right: amount + status badge — mt-3 equivalent matches React
 Padding(
-  padding: const EdgeInsets.only(top: 12),
+  padding: const EdgeInsets.only(top: 4),
   child: Column(
     crossAxisAlignment: CrossAxisAlignment.end,
     children: [
-      // approved_limit shown independently if != 0.00
-      if (loan['approved_limit'] != null &&
-          loan['approved_limit'].toString() != '0.00')
+      // approvedLimit shown independently if present and != 0.00
+      if (loan['approvedLimit'] != null &&
+          loan['approvedLimit'].toString() != '0.00')
         Text(
-          '₹${loan['approved_limit']}',
+          '₹${loan['approvedLimit']}',
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
             color: Color(0xFF1E293B),
           ),
         ),
-      // product_price shown independently for pending/approved/disbursed
+      // productPrice shown independently for pending/approved/disbursed
       if (['pending', 'approved', 'disbursed'].contains(status))
         Text(
-          '₹${loan['product_price'] ?? ''}',
+          '₹${loan['productPrice'] ?? ''}',
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
@@ -1569,18 +1568,14 @@ Padding(
         padding: const EdgeInsets.symmetric(
             horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: statusColor.withOpacity(0.12),
-          border: Border.all(
-            color: statusColor.withOpacity(0.4),
-            width: 0.5,
-          ),
+          color: cardColors.badgeBg,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           status.toUpperCase(),
           style: TextStyle(
             fontSize: 9,
-            color: statusColor,
+            color: cardColors.badgeText,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -1603,7 +1598,7 @@ Padding(
                     // ── Bottom row ───────────────────────────────────────
                     // FIX 3: More balanced padding above/below
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [

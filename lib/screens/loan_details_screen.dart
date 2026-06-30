@@ -52,6 +52,7 @@ class LoanDetailsModel {
   final String? closedDate;
   final String? remarks;
   final String? nocGenerated;
+  final List<StatusHistoryEntry> statusHistory;
 
   const LoanDetailsModel({
     this.loanId,
@@ -98,58 +99,71 @@ class LoanDetailsModel {
     this.closedDate,
     this.remarks,
     this.nocGenerated,
-  });
+    this.statusHistory = const [],
+});
 
-  factory LoanDetailsModel.fromJson(Map<String, dynamic> json) {
-    return LoanDetailsModel(
-      loanId: json['loan_id']?.toString(),
-      applicationId: json['application_id']?.toString(),
-      status: json['status']?.toString(),
-      productType: json['product_type']?.toString(),
-      brand: json['brand']?.toString(),
-      model: json['model']?.toString(),
-      productPrice: json['product_price']?.toString(),
-      approvedLimit: json['approved_limit']?.toString(),
-      downpaymentAmount: json['downpayment_amount']?.toString(),
-      fullName: json['full_name']?.toString(),
-      phoneNumber: json['phone_number']?.toString(),
-      email: json['email']?.toString(),
-      dob: json['dob']?.toString(),
-      gender: json['gender']?.toString(),
-      address: json['address']?.toString(),
-      employmentType: json['employment_type']?.toString(),
-      companyName: json['company_name']?.toString(),
-      monthlyIncome: json['monthly_income']?.toString(),
-      workExperience: json['work_experience']?.toString(),
-      aadharNumber: json['aadhar_number']?.toString(),
-      panNumber: json['pan_number']?.toString(),
-      bankName: json['bank_name']?.toString(),
-      accountNumber: json['account_number']?.toString(),
-      ifscCode: json['ifsc_code']?.toString(),
-      aadharVerified: json['aadhar_verified'] == true || json['aadhar_verified'] == 1,
-      panVerified: json['pan_verified'] == true || json['pan_verified'] == 1,
-      passbookVerified: json['passbook_verified'] == true || json['passbook_verified'] == 1,
-      nachVerified: json['nach_verified'] == true || json['nach_verified'] == 1,
-      agreementVerified: json['agreement_verified'] == true || json['agreement_verified'] == 1,
-      reference1Name: json['reference1_name']?.toString(),
-      reference1Contact: json['reference1_contact']?.toString(),
-      reference1AadharVerified: json['reference1_aadhar_verified']?.toString(),
-      reference1PanVerified: json['reference1_pan_verified']?.toString(),
-      reference2Name: json['reference2_name']?.toString(),
-      reference2Contact: json['reference2_contact']?.toString(),
-      reference2AadharVerified: json['reference2_aadhar_verified']?.toString(),
-      reference2PanVerified: json['reference2_pan_verified']?.toString(),
-      shopDetails: json['shop_details'] != null
-          ? ShopDetails.fromJson(json['shop_details'])
-          : null,
-      appliedDate: json['applied_date']?.toString(),
-      approvalDate: json['approval_date']?.toString(),
-      disbursedDate: json['disbursed_date']?.toString(),
-      closedDate: json['colsed_date']?.toString(),
-      remarks: json['remarks']?.toString(),
-      nocGenerated: json['noc_generated']?.toString(),
+factory LoanDetailsModel.fromJson(Map<String, dynamic> json) {
+  return LoanDetailsModel(
+    loanId: json['loanId']?.toString(),
+    applicationId: json['applicationId']?.toString(),
+    status: json['status']?.toString(),
+
+    productType: json['product_type']?.toString(),
+    brand: json['brand']?.toString(),
+    model: json['model']?.toString(),
+    productPrice: json['productPrice']?.toString(),
+    approvedLimit: json['approvedLimit']?.toString(),
+    downpaymentAmount: json['downpaymentAmount']?.toString(),
+
+    fullName: json['fullName']?.toString(),
+    phoneNumber: json['phoneNumber']?.toString(),
+    email: json['email']?.toString(),
+    dob: json['dob']?.toString(),
+    gender: json['gender']?.toString(),
+    address: json['address']?.toString(),
+    employmentType: json['employmentType']?.toString(),
+    companyName: json['companyName']?.toString(),
+    monthlyIncome: json['monthlyIncome']?.toString(),
+    workExperience: json['workExperience']?.toString(),
+
+    aadharNumber: json['aadharMasked']?.toString(),
+    panNumber: json['panMasked']?.toString(),
+
+    bankName: json['bank_name']?.toString(),
+    accountNumber: json['account_number']?.toString(),
+    ifscCode: json['ifsc_code']?.toString(),
+
+    aadharVerified: json['isAadharVerified'] == true,
+    panVerified: json['isPanVerified'] == true,
+    passbookVerified: json['passbook_verified'] == true || json['passbook_verified'] == 1,
+    nachVerified: json['nach_verified'] == true || json['nach_verified'] == 1,
+    agreementVerified: json['agreement_verified'] == true || json['agreement_verified'] == 1,
+
+    reference1Name: json['reference1_name']?.toString(),
+    reference1Contact: json['reference1_contact']?.toString(),
+    reference1AadharVerified: json['reference1_aadhar_verified']?.toString(),
+    reference1PanVerified: json['reference1_pan_verified']?.toString(),
+    reference2Name: json['reference2_name']?.toString(),
+    reference2Contact: json['reference2_contact']?.toString(),
+    reference2AadharVerified: json['reference2_aadhar_verified']?.toString(),
+    reference2PanVerified: json['reference2_pan_verified']?.toString(),
+
+    shopDetails: json['shop_details'] != null
+        ? ShopDetails.fromJson(json['shop_details'] as Map<String, dynamic>)
+        : null,
+
+    appliedDate: json['appliedDate']?.toString(),
+    approvalDate: json['approvalDate']?.toString(),
+    disbursedDate: json['disbursedDate']?.toString(),
+    closedDate: json['closedDate']?.toString(),
+
+    remarks: json['remarks']?.toString(),
+    nocGenerated: json['noc_generated']?.toString(),
+    statusHistory: (json['status_history'] as List<dynamic>? ?? [])
+        .map((e) => StatusHistoryEntry.fromJson(e as Map<String, dynamic>))
+        .toList(),
     );
-  }
+    }
 }
 
 class ShopDetails {
@@ -206,6 +220,28 @@ class EmiDetails {
       startDate: json['start_date']?.toString(),
       endDate: json['end_date']?.toString(),
       totalPaid: (json['total_paid'] as num?)?.toDouble(),
+    );
+  }
+}
+class StatusHistoryEntry {
+  final String? status;
+  final String? remarks;
+  final String? createdAt;
+  final String? changedBy;
+
+  const StatusHistoryEntry({
+    this.status,
+    this.remarks,
+    this.createdAt,
+    this.changedBy,
+  });
+
+  factory StatusHistoryEntry.fromJson(Map<String, dynamic> json) {
+    return StatusHistoryEntry(
+      status: json['status']?.toString(),
+      remarks: json['remarks']?.toString(),
+      createdAt: json['createdAt']?.toString(),
+      changedBy: json['changedBy']?.toString(),
     );
   }
 }
@@ -293,6 +329,31 @@ final Map<String, _StatusConfig> loanStatusConfig = {
     badgeText: const Color(0xFF1F2937),
   ),
 };
+
+String _timelineLabel(String? status) {
+  switch (status?.toLowerCase()) {
+    case 'pending': return 'Application Submitted';
+    case 'approved': return 'Application Approved';
+    case 'rejected': return 'Application Rejected';
+    case 'disbursed': return 'Loan Disbursed';
+    case 'active': return 'Loan Activated';
+    case 'completed': return 'Loan Closed';
+    default: return status != null ? _capitalizeGlobal(status) : 'Status Updated';
+  }
+}
+
+String _capitalizeGlobal(String s) =>
+    s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+Color _timelineColor(String? status) {
+  final cfg = _getStatusConfig(status);
+  return cfg.textColor;
+}
+
+Color _timelineBgColor(String? status) {
+  final cfg = _getStatusConfig(status);
+  return cfg.badgeBg;
+}
 
 _StatusConfig _getStatusConfig(String? status) =>
     loanStatusConfig[status?.toLowerCase()] ?? loanStatusConfig['default']!;
@@ -500,7 +561,7 @@ void _handleSelectEMIPlan() {
             ),
           ),
           const Text(
-            'Mobile Loan Details',
+            'Loan Details',
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -781,8 +842,8 @@ void _handleSelectEMIPlan() {
           _InfoRow(icon: Icons.currency_rupee, label: 'Monthly Income', value: loan.monthlyIncome != null ? '₹${loan.monthlyIncome}' : null),
           _InfoRow(icon: Icons.access_time_outlined, label: 'Work Experience', value: loan.workExperience != null ? '${loan.workExperience} years' : null),
           const _SectionDivider(title: 'Document Information'),
-          _InfoRow(icon: Icons.description_outlined, label: 'Aadhar Number', value: _maskAadhar(loan.aadharNumber)),
-          _InfoRow(icon: Icons.description_outlined, label: 'PAN Number', value: _maskPan(loan.panNumber)),
+          _InfoRow(icon: Icons.description_outlined, label: 'Aadhar Number', value: loan.aadharNumber),
+          _InfoRow(icon: Icons.description_outlined, label: 'PAN Number', value: loan.panNumber),
         ]);
 
       case 'loan':
@@ -869,62 +930,58 @@ void _handleSelectEMIPlan() {
   // ─── Timeline ─────────────────────────────────────────────────────────────
 
   Widget _buildTimeline() {
-    final loan = widget.loan;
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Application Timeline',
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B))),
-          const SizedBox(height: 12),
+  final loan = widget.loan;
+  final history = loan.statusHistory;
+
+  return Container(
+    margin: const EdgeInsets.only(top: 16),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.grey.shade200),
+      boxShadow: [
+        BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2))
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Application Timeline',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B))),
+        const SizedBox(height: 12),
+        if (history.isEmpty)
+          // Fallback: at least show applied date if history is empty
           _TimelineItem(
             label: 'Application Submitted',
             date: _formatDate(loan.appliedDate, includeTime: true),
             color: const Color(0xFF3B82F6),
             bgColor: const Color(0xFFDBEAFE),
-          ),
-          if (_hasStatus(['approved', 'disbursed', 'active', 'completed']))
-            _TimelineItem(
-              label: 'Application Approved',
-              date: _formatDate(loan.approvalDate, includeTime: true),
-              color: const Color(0xFF16A34A),
-              bgColor: const Color(0xFFDCFCE7),
-            ),
-          if (_hasStatus(['disbursed', 'active', 'completed']))
-            _TimelineItem(
-              label: 'Loan Disbursed',
-              date: _formatDate(loan.disbursedDate, includeTime: true),
-              color: const Color(0xFF16A34A),
-              bgColor: const Color(0xFFDCFCE7),
-            ),
-          if (loan.status?.toLowerCase() == 'completed')
-            _TimelineItem(
-              label: 'Loan Closed',
-              date: _formatDate(loan.closedDate, includeTime: true),
-              color: const Color(0xFF7C3AED),
-              bgColor: const Color(0xFFEDE9FE),
-              isLast: true,
-            ),
-        ],
-      ),
-    );
-  }
+            isLast: true,
+          )
+        else
+          ...List.generate(history.length, (i) {
+            final entry = history[i];
+            final isLast = i == history.length - 1;
+            return _TimelineItem(
+              label: _timelineLabel(entry.status),
+              date: _formatDate(entry.createdAt, includeTime: true),
+              color: _timelineColor(entry.status),
+              bgColor: _timelineBgColor(entry.status),
+              isLast: isLast,
+              remarks: entry.remarks,
+            );
+          }),
+      ],
+    ),
+  );
+}
 
   // ─── Action Buttons ───────────────────────────────────────────────────────
 
@@ -1292,6 +1349,7 @@ class _TimelineItem extends StatelessWidget {
   final Color color;
   final Color bgColor;
   final bool isLast;
+  final String? remarks;
 
   const _TimelineItem({
     Key? key,
@@ -1300,6 +1358,7 @@ class _TimelineItem extends StatelessWidget {
     required this.color,
     required this.bgColor,
     this.isLast = false,
+    this.remarks,
   }) : super(key: key);
 
   @override
@@ -1316,18 +1375,28 @@ class _TimelineItem extends StatelessWidget {
             child: Icon(Icons.check_circle_outline, size: 14, color: color),
           ),
           const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF1E293B))),
-              Text(date,
-                  style: TextStyle(
-                      fontSize: 11, color: Colors.grey.shade500)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF1E293B))),
+                Text(date,
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade500)),
+                if (remarks != null && remarks!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(remarks!,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade400,
+                          fontStyle: FontStyle.italic)),
+                ],
+              ],
+            ),
           ),
         ],
       ),

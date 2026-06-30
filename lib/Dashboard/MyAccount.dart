@@ -54,6 +54,9 @@ _StatusConfig _getStatusConfig(String status) {
       _loanStatusConfig['default']!;
 }
 
+String _capitalize(String s) =>
+    s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
 // ─── MyAccount Screen ──────────────────────────────────────────────────────────
 
 class MyAccountScreen extends StatefulWidget {
@@ -94,8 +97,6 @@ void didChangeDependencies() {
     }
   }
 
-  // ── Mirrors: fetchLoanApplications ─────────────────────────────────────────
-
   Future<void> _fetchLoanApplications() async {
     setState(() {
       _loading = true;
@@ -103,10 +104,43 @@ void didChangeDependencies() {
     });
 
     try {
-      final response = await ApiService.getLoanApplications(widget.userId);
-      if (response['success'] == 1) {
+      final response = await ApiService.getLoanApplicationsV2();
+      debugPrint('=== MY ACCOUNT LOANS V2 ===');
+      debugPrint('statusCode: ${response['statusCode']}');
+      debugPrint('success: ${response['success']}');
+      debugPrint('message: ${response['message']}');
+      debugPrint('error: ${response['error']}');
+      final rawList = response['data'];
+      if (rawList is List && rawList.isNotEmpty) {
+        debugPrint('total loans: ${rawList.length}');
+        debugPrint('=== FIRST LOAN ALL FIELDS ===');
+        final first = rawList[0] as Map<String, dynamic>;
+        first.forEach((key, value) {
+          debugPrint('  $key: $value');
+        });
+        if (first['shop_details'] != null) {
+          debugPrint('=== SHOP DETAILS FIELDS ===');
+          final shop = first['shop_details'] as Map<String, dynamic>;
+          shop.forEach((key, value) {
+            debugPrint('  shop.$key: $value');
+          });
+        }
+        debugPrint('=============================');
+      } else {
+        debugPrint('data is empty or not a list: $rawList');
+      }
+      debugPrint('===========================');
+      if (response['success'] == true) {
+        final list = response['data'] as List<dynamic>? ?? [];
+        if (list.isNotEmpty) {
+          debugPrint('=== V2 LOAN FIRST ITEM ALL FIELDS ===');
+          (list[0] as Map<String, dynamic>).forEach((key, value) {
+            debugPrint('  $key: $value');
+          });
+          debugPrint('=====================================');
+        }
         setState(() {
-          _loanData = response['loanApplications'] ?? [];
+          _loanData = list;
         });
       } else {
         setState(() {
@@ -115,6 +149,7 @@ void didChangeDependencies() {
         });
       }
     } catch (e) {
+      debugPrint('MyAccount loans error: $e');
       setState(() {
         _error = 'Failed to fetch loan applications. Please try again later.';
       });
@@ -337,207 +372,226 @@ class _LoanCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final status = (loan['status'] ?? 'default').toString().toLowerCase();
-    final config = _getStatusConfig(status);
+  @override
+Widget build(BuildContext context) {
+  debugPrint('=== LOAN CARD KEYS: ${loan.keys.toList()}');
+  debugPrint('=== LOAN CARD VALUES: $loan');
+  final status = (loan['status'] ?? 'default').toString().toLowerCase();
+  final config = _getStatusConfig(status);
 
-    // Mirrors: loan?.loan_id ? 'Loan ID: ...' : 'Application ID: ...'
-    final String idLabel = (status == 'active' || status == 'completed')
-        ? 'Loan ID: ${loan['loan_id'] ?? ''}'
-        : 'Application ID: ${loan['application_id'] ?? ''}';
+  final bool showApprovedLimit = status == 'active' || status == 'completed';
 
-    // Mirrors: loan?.approved_limit != 0.00 ? show loan amount : show product price
-    final bool showApprovedLimit =
-        status == 'active' || status == 'completed';
+  final String idLabel = (loan['loanId'] != null)
+      ? 'Loan ID: ${loan['loanId']}'
+      : 'Application ID: ${loan['applicationId'] ?? '-'}';
 
-    final String amountLabel =
-        showApprovedLimit ? 'Loan Amount' : 'Product Price';
-    final String amountValue = showApprovedLimit
-        ? '₹${loan['approved_limit']}'
-        : '₹${loan['product_price'] ?? ''}';
+  final String amountLabel = showApprovedLimit ? 'Loan Amount' : 'Product Price';
+  final String amountValue = showApprovedLimit
+      ? '₹${loan['approvedLimit'] ?? '-'}'
+      : '₹${loan['productPrice'] ?? '-'}';
 
-    return Container(
-      decoration: BoxDecoration(
-        color: config.bgColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // ── Top row ─────────────────────────────────────────────────────
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left: icon + brand/model + id
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(Icons.phone_android,
-                          size: 22, color: Colors.grey.shade600),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${loan['brand'] ?? ''}-${loan['model'] ?? ''}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1E293B),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              idLabel,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+  final String brand = loan['brand']?.toString() ?? '';
+  final String model = loan['model']?.toString() ?? '';
+  final String titleText =
+      (brand.isNotEmpty || model.isNotEmpty) ? '$brand-$model' : 'Loan Application';
 
-                const SizedBox(width: 12),
+  final String appliedDate = loan['created_at']?.toString() ?? '';
 
-                // Right: amount + status badge
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+  return Container(
+    decoration: BoxDecoration(
+      color: config.bgColor,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: Colors.grey.shade200),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.06),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        // ── Top row ──────────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left: icon + city + id
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      amountLabel,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    Text(
-                      amountValue,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // Status badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: config.badgeColor,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        status.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: config.badgeTextColor,
-                          letterSpacing: 0.5,
-                        ),
+                    Icon(Icons.store_outlined,
+                        size: 22, color: Colors.grey.shade600),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            titleText,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1E293B),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            idLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          // ── Divider ──────────────────────────────────────────────────────
-          Divider(height: 1, color: Colors.grey.shade200),
+              const SizedBox(width: 12),
 
-          // ── Bottom row ───────────────────────────────────────────────────
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Left: EMI info (active) or Select EMI Plan button (approved)
-                if (status == 'active' || status == 'completed')
-                  Row(
-                    children: [
-                      const Icon(Icons.check_circle,
-                          size: 16, color: Color(0xFF16A34A)),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${loan['paid_emi'] ?? 0}/${loan['total_emi'] ?? 0} EMIs paid',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF16A34A),
-                        ),
-                      ),
-                    ],
-                  )
-                else if (status == 'approved')
-                  GestureDetector(
-                    onTap: onSelectEMIPlan,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDBEAFE),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'Select EMI Plan',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF1D4ED8),
-                        ),
+              // Right: amount + status badge
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    amountLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  Text(
+                    amountValue,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: config.badgeColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      status.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: config.badgeTextColor,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                  )
-                else
-                  const SizedBox(),
-
-                // Right: View Details button — always shown
-                GestureDetector(
-                  onTap: onViewDetails,
-                  child: Row(
-                    children: [
-                      Icon(Icons.remove_red_eye_outlined,
-                          size: 16, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        'View Details',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+
+        // ── Divider ──────────────────────────────────────────────────────
+        Divider(height: 1, color: Colors.grey.shade200),
+
+        // ── Bottom row ───────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Left side
+              if (status == 'active' || status == 'completed')
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle,
+                        size: 16, color: Color(0xFF16A34A)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${loan['paid_emi'] ?? 0}/${loan['total_emi'] ?? 0} EMIs paid',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF16A34A),
+                      ),
+                    ),
+                  ],
+                )
+              else if (status == 'approved')
+                GestureDetector(
+                  onTap: onSelectEMIPlan,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDBEAFE),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Select EMI Plan',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF1D4ED8),
+                      ),
+                    ),
+                  ),
+                )
+              else if (appliedDate.isNotEmpty)
+                // pending / rejected — show applied date
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today_outlined,
+                        size: 13, color: Colors.grey.shade500),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Applied: $appliedDate',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                const SizedBox(),
+
+              // Right: View Details — always shown
+              GestureDetector(
+                onTap: onViewDetails,
+                child: Row(
+                  children: [
+                    Icon(Icons.remove_red_eye_outlined,
+                        size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text(
+                      'View Details',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
 }

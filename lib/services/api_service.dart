@@ -85,6 +85,48 @@ static Future<Map<String, dynamic>> loginWithMpin({
   data['statusCode'] = response.statusCode;
   return data;
 }
+
+static Future<Map<String, dynamic>> verifyCurrentMpin({
+  required String mpin,
+  required String accessToken,
+}) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/mpin-verify'),
+    headers: {
+      ..._headers,
+      'Authorization': 'Bearer $accessToken',
+    },
+    body: jsonEncode({
+      'mpin': mpin,
+    }),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+static Future<Map<String, dynamic>> changeMpin({
+  required String oldMpin,
+  required String newMpin,
+  required String confirmNewMpin,
+  required String accessToken,
+}) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/mpin-change'),
+    headers: {
+      ..._headers,
+      'Authorization': 'Bearer $accessToken',
+    },
+    body: jsonEncode({
+      'oldMpin': oldMpin,
+      'newMpin': newMpin,
+      'confirmNewMpin': confirmNewMpin,
+    }),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
  
   static Future<Map<String, dynamic>> resetMpin(
       String phoneNumber, String newMpin) async {
@@ -300,6 +342,7 @@ static Future<Map<String, dynamic>> checkUserRegistration(
   }
 
   
+  
   static Future<Map<String, dynamic>> getLoanApplications(
       String userId) async {
     final response = await http.get(
@@ -308,6 +351,20 @@ static Future<Map<String, dynamic>> checkUserRegistration(
       headers: _headers,
     );
     return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> getLoanApplicationsV2() async {
+    final token = await AuthService.getAccessToken();
+    final response = await http.get(
+      Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/loans'),
+      headers: {
+        ..._headers,
+        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      },
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    data['statusCode'] = response.statusCode;
+    return data;
   }
 
  

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 import '../screens/Forgot_mpin_screen.dart';
+import '../../services/auth_service.dart';
 
 // ─── ManageMPIN Screen ─────────────────────────────────────────────────────────
 
@@ -18,6 +19,8 @@ class _ManageMPINScreenState extends State<ManageMPINScreen>
     with TickerProviderStateMixin {
   // ── State ──────────────────────────────────────────────────────────────────
   int _step = 1;
+  String _phoneNumber = '';
+  String _verifiedOldMpin = '';
   final List<String> _currentMPIN = ['', '', '', ''];
   final List<String> _newMPIN = ['', '', '', ''];
   final List<String> _confirmMPIN = ['', '', '', ''];
@@ -60,7 +63,7 @@ class _ManageMPINScreenState extends State<ManageMPINScreen>
   @override
   void initState() {
     super.initState();
-
+    _loadPhoneNumber();
     // Blob animation
     // _blobController = AnimationController(
     //   vsync: this,
@@ -101,6 +104,14 @@ class _ManageMPINScreenState extends State<ManageMPINScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
+  }
+  Future<void> _loadPhoneNumber() async {
+    final phone = await AuthService.getPhone();
+    if (mounted) {
+      setState(() {
+        _phoneNumber = phone;
+      });
+    }
   }
 
   @override
@@ -289,7 +300,8 @@ class _ManageMPINScreenState extends State<ManageMPINScreen>
     }
   }
 
-  Future<void> _verifyCurrentMPIN() async {
+
+Future<void> _verifyCurrentMPIN() async {
     if (_currentMPIN.contains('')) {
       setState(() => _error = 'Please enter all digits');
       return;
@@ -302,49 +314,45 @@ class _ManageMPINScreenState extends State<ManageMPINScreen>
 
     try {
       final enteredMPIN = _currentMPIN.join('');
-      final response = await ApiService.verifyMpin(
-          widget.userProfile['phoneNumber'], enteredMPIN);
+      final token = await AuthService.getAccessToken();
 
-      if (response['success'] == true) {
+      if (token == null || token.isEmpty) {
+        setState(() => _error = 'Session expired. Please login again.');
+        return;
+      }
+
+      final response = await ApiService.verifyCurrentMpin(
+        mpin: enteredMPIN,
+        accessToken: token,
+      );
+
+      if (response['statusCode'] == 200 && response['success'] == true) {
+        _verifiedOldMpin = enteredMPIN;
         setState(() {
           _step = 2;
           _error = '';
         });
-        // FIX: Clear new/confirm fields on step transition
         _clearPins('new');
         _clearPins('confirm');
-        // Re-trigger fade-up for step 2
         _fadeUpController.forward(from: 0);
       } else {
-        throw Exception(response['message'] ?? 'Incorrect MPIN');
+        final msg = response['message']?.toString() ?? 'Incorrect MPIN';
+        throw Exception(msg);
       }
     } catch (error) {
       _triggerShake();
-
-      // FIX: Handle 401-specific error messages from backend (matching React behaviour).
-      // ApiService should throw a DioException or similar with a statusCode.
-      // We extract the backend message when available.
-      String errMsg;
-      if (error is Exception) {
-        errMsg = error.toString().replaceFirst('Exception: ', '');
-      } else {
-        errMsg = error.toString();
-      }
-
-      // Check for structured API error with status code 401
-      // Works if ApiService wraps HTTP errors in a typed exception with statusCode
-      if (error is ApiException && error.statusCode == 401) {
-        errMsg = error.message.isNotEmpty ? error.message : 'Invalid MPIN';
-      }
-
-      setState(() => _error = errMsg.isNotEmpty ? errMsg : 'Login failed');
+      String errMsg = error is Exception
+          ? error.toString().replaceFirst('Exception: ', '')
+          : error.toString();
+      setState(() => _error = errMsg.isNotEmpty ? errMsg : 'Verification failed');
       _clearPins('current');
     } finally {
       setState(() => _loading = false);
     }
   }
 
-  Future<void> _handleSetupMPIN() async {
+
+Future<void> _handleSetupMPIN() async {
     if (_newMPIN.contains('') || _confirmMPIN.contains('')) {
       setState(() => _error = 'Please enter all digits');
       return;
@@ -366,18 +374,29 @@ class _ManageMPINScreenState extends State<ManageMPINScreen>
     });
 
     try {
-      final response = await ApiService.resetMpin(
-          widget.userProfile['phoneNumber'], newMPINValue);
+      final token = await AuthService.getAccessToken();
 
-      if (response['success'] == true) {
+      if (token == null || token.isEmpty) {
+        setState(() => _error = 'Session expired. Please login again.');
+        return;
+      }
+
+      final response = await ApiService.changeMpin(
+        oldMpin: _verifiedOldMpin,
+        newMpin: newMPINValue,
+        confirmNewMpin: confirmMPINValue,
+        accessToken: token,
+      );
+
+      if (response['statusCode'] == 200 && response['success'] == true) {
         setState(() => _isSuccess = true);
-        // FIX: Trigger fade-up animation for success screen entry
         _fadeUpController.forward(from: 0);
         _successBounceController.repeat(reverse: true);
         await Future.delayed(const Duration(milliseconds: 1500));
         if (mounted) Navigator.of(context).pop();
       } else {
-        setState(() => _error = 'Failed to update MPIN. Please try again.');
+        final msg = response['message']?.toString() ?? 'Failed to update MPIN';
+        setState(() => _error = msg);
       }
     } catch (_) {
       setState(() => _error = 'Failed to update MPIN. Please try again.');
