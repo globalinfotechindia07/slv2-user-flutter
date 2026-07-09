@@ -273,7 +273,7 @@ class _HomeBody extends StatelessWidget {
           const SizedBox(height: 20),
 
           // 1. Featured
-          _FeaturedSection(),
+          _FeaturedSection(userId: userId),
           const SizedBox(height: 20),
 
           // 2. BannerCarousel
@@ -338,6 +338,9 @@ class _ShareBody extends StatelessWidget {
 // ── Featured ───────────────────────────────────────────────────────────────
 
 class _FeaturedSection extends StatelessWidget {
+  final String userId;
+  const _FeaturedSection({required this.userId});
+
   final List<_FeatureItem> items = const [
     _FeatureItem(
       Icons.access_time_rounded,
@@ -346,6 +349,7 @@ class _FeaturedSection extends StatelessWidget {
       AppColors.primary,
       '/app/loanServices',
       {'pstitle': 'FD Scheme'},
+      'leads',
     ),
     _FeatureItem(
       Icons.phone_android,
@@ -354,6 +358,7 @@ class _FeaturedSection extends StatelessWidget {
       Color(0xFF43A047),
       '/app/mobile-loan',
       {'pstitle': 'Mobile Loan', 'psLcategory': 'Mobile'},
+      'application',
     ),
     _FeatureItem(
       Icons.account_balance,
@@ -362,6 +367,7 @@ class _FeaturedSection extends StatelessWidget {
       AppColors.accent,
       '/app/loanServices',
       {'pstitle': 'Savings Account'},
+      'leads',
     ),
     _FeatureItem(
       Icons.verified_user_outlined,
@@ -370,6 +376,7 @@ class _FeaturedSection extends StatelessWidget {
       Color(0xFFF57C00),
       '/app/loanServices',
       {'pstitle': 'Insurance Services'},
+      'leads',
     ),
   ];
 
@@ -410,7 +417,9 @@ class _FeaturedSection extends StatelessWidget {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: items.map((item) => _FeatureCell(item: item)).toList(),
+              children: items
+                  .map((item) => _FeatureCell(item: item, userId: userId))
+                  .toList(),
             ),
           ),
         ],
@@ -426,24 +435,41 @@ class _FeatureItem {
   final Color iconColor;
   final String? route;
   final Map<String, dynamic>? routeArgs;
+  final String pssource;
   const _FeatureItem(
       this.icon, this.label, this.bgColor, this.iconColor, this.route,
-      [this.routeArgs]);
+      [this.routeArgs, this.pssource = 'leads']);
 }
 
 class _FeatureCell extends StatelessWidget {
   final _FeatureItem item;
-  const _FeatureCell({required this.item});
+  final String userId;
+  const _FeatureCell({required this.item, required this.userId});
+
+  void _handleTap(BuildContext context) {
+    final service = Map<String, dynamic>.from(item.routeArgs ?? {});
+
+    if (item.pssource == 'application') {
+      Navigator.pushNamed(context, '/app/loanServiceScreen', arguments: service);
+    } else if (item.pssource == 'leads') {
+      Navigator.pushNamed(
+        context,
+        '/app/otherLoanServiceDetails',
+        arguments: {
+          ...service,
+          '_userId': userId,
+        },
+      );
+    } else if (item.route != null) {
+      // Fallback — shouldn't be hit since pssource always defaults to 'leads'
+      Navigator.pushNamed(context, item.route!, arguments: item.routeArgs);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        if (item.route != null) {
-          Navigator.pushNamed(context, item.route!,
-              arguments: item.routeArgs);
-        }
-      },
+      onTap: () => _handleTap(context),
       child: Column(
         children: [
           Container(
@@ -584,8 +610,10 @@ class _BillCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () =>
-          Navigator.pushNamed(context, item.route, arguments: item.routeArgs),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const BillComingSoonScreen()),
+      ),
       child: Column(
         children: [
           Container(
@@ -650,8 +678,8 @@ void _handleServiceTap(BuildContext context, Map<String, dynamic> service) {
     final title = service['pstitle'] ?? '';
     final source = service['pssource'] ?? '';
 
-    if (title == 'Mobile Loan') {
-      Navigator.pushNamed(context, '/app/loans', arguments: service);
+    if (source == 'application') {
+      Navigator.pushNamed(context, '/app/loanServiceScreen', arguments: service);
     } else if (source == 'leads') {
       Navigator.pushNamed(
         context,
@@ -661,12 +689,12 @@ void _handleServiceTap(BuildContext context, Map<String, dynamic> service) {
           '_userId': widget.userId,
         },
       );
-    } else if (source == 'application') {
-      Navigator.pushNamed(context, '/app/loanServiceScreen', arguments: service);
+    } else if (title == 'Mobile Loan') {
+      Navigator.pushNamed(context, '/app/loans', arguments: service);
     } else {
       Navigator.pushNamed(context, '/app/loans', arguments: service);
     }
-  }
+}
 
   @override
   Widget build(BuildContext context) {

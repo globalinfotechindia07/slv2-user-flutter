@@ -3,27 +3,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:app_links/app_links.dart';
 import 'dart:convert';
 import 'dart:async';
 import '../../../services/api_service.dart';
+import '../../../services/auth_service.dart';
+import '../../../widgets/secure_image.dart';
+import '../../../screens/home_screen.dart';
+import 'dart:math';
+import 'package:confetti/confetti.dart';
 
 const List<Map<String, String>> kSteps = [
   {'key': 'personal', 'label': 'Personal Details', 'subtitle': 'Tell us about yourself'},
-  {'key': 'documents', 'label': 'Documents', 'subtitle': 'Upload your identity documents'},
+  {'key': 'aadhaar', 'label': 'Aadhaar Verification', 'subtitle': 'Verify your Aadhaar details'},
+  {'key': 'pan', 'label': 'PAN Verification', 'subtitle': 'Verify your PAN details'},
   {'key': 'employment', 'label': 'Employment Details', 'subtitle': 'Share your work information'},
   {'key': 'product', 'label': 'Product Details', 'subtitle': 'What would you like to purchase?'},
 ];
 
 const List<Map<String, String>> kEmploymentTypes = [
-  {'value': 'salaried', 'label': 'Salaried'},
-  {'value': 'self-employed', 'label': 'Self Employed'},
-  {'value': 'business', 'label': 'Business Owner'},
+  {'value': 'Salaried', 'label': 'Salaried'},
+  {'value': 'Self-Employed', 'label': 'Self Employed'},
+  {'value': 'Business', 'label': 'Business Owner'},
 ];
 
 const List<Map<String, String>> kGenderOptions = [
-  {'value': 'male', 'label': 'Male'},
-  {'value': 'female', 'label': 'Female'},
-  {'value': 'other', 'label': 'Other'},
+  {'value': 'Male', 'label': 'Male'},
+  {'value': 'Female', 'label': 'Female'},
+  {'value': 'Other', 'label': 'Other'},
 ];
 
 const List<Map<String, String>> kWorkExperienceOptions = [
@@ -38,6 +46,7 @@ const List<Map<String, String>> kWorkExperienceOptions = [
 const Color kPrimary     = Color(0xFFDC2626); // red-600
 const Color kPrimaryDark = Color(0xFFB91C1C); // red-700
 const Color kBlue        = Color(0xFF2563EB); // blue-600
+const Color kAmber       = Color(0xFFF59E0B); // amber-500
 const Color kSurface     = Color(0xFFFFFFFF);
 const Color kSlate900    = Color(0xFF0F172A);
 const Color kSlate700    = Color(0xFF374151);
@@ -113,17 +122,25 @@ class LoanFormData {
   String phoneNumber, otp, fullName, email, dob, address;
   String aadharNumber, panNumber;
   File? aadharDoc, aadharDocBack, panDoc;
+  // Remote filenames for previously-uploaded documents (fetched via SecureImage)
+  String? aadharDocFilename, aadharDocBackFilename, panDocFilename;
   String employmentType, monthlyIncome, companyName, workExperience;
   String productType, shopName, brand, model, productPrice, downPayment, gender;
+  String sessionToken;
+  String customerId, panFullName, branchId;
+  bool isAadharVerified, isPanVerified;
 
   LoanFormData({
     this.phoneNumber = '', this.otp = '', this.fullName = '', this.email = '',
     this.dob = '', this.address = '', this.aadharNumber = '', this.panNumber = '',
     this.aadharDoc, this.aadharDocBack, this.panDoc,
+    this.aadharDocFilename, this.aadharDocBackFilename, this.panDocFilename,
     this.employmentType = '', this.monthlyIncome = '', this.companyName = '',
     this.workExperience = '', this.productType = '', this.shopName = '',
     this.brand = '', this.model = '', this.productPrice = '',
-    this.downPayment = '', this.gender = '',
+    this.downPayment = '', this.gender = '', this.sessionToken = '',
+    this.customerId = '', this.panFullName = '', this.branchId = '',
+    this.isAadharVerified = false, this.isPanVerified = false,
   });
 }
 
@@ -141,27 +158,42 @@ class MobileLoanFormScreen extends StatefulWidget {
 
 class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
     with SingleTickerProviderStateMixin {
-  bool _isPhoneVerified = false;
+  // bool _isPhoneVerified = false;
   int _currentStep = 0;
   bool _loading = false;
+  bool _isPhoneVerified = false;
   bool _isSubmitted = false;
-
   final Map<String, String> _errors = {};
-  List<ShopModel> _shops = [];
-  List<CategoryModel> _categories = [];
+
+  // API data
+  List<Map<String, dynamic>> _categories = [];
+  List<Map<String, dynamic>> _shops = [];
+  List<Map<String, dynamic>> _branches = [];
+
+  // Customer data from OTP verification
+  // String? _customerId;
+  // bool _isAadharVerified = false;
+  // bool _isPanVerified = false;
+
+  // DigiLocker
+  StreamSubscription<Uri>? _deepLinkSub;
+  bool _digiLockerLoading = false;
+  // bool _showDigiLockerSuccess = false;
+  // bool _showDigiLockerError = false;
+  String _digiLockerRefId = '';
+  String _digiLockerSessionToken = '';
+  // List<CategoryModel> _categories = [];
 
   late LoanFormData _formData;
 
   int _carouselIndex = 0;
   Timer? _carouselTimer;
 
-  // late AnimationController _blobController;
-
   final List<Map<String, String>> _slides = const [
-    {'title': 'Quick Approval', 'image': 'assets/images/m1.png'},
-    {'title': 'Flexible EMIs',  'image': 'assets/images/m2.png'},
-    {'title': 'Low Interest Rates', 'image': 'assets/images/m3.png'},
-  ];
+  {'title': 'Quick Approval', 'description': 'Get instant mobile loans with minimal documentation', 'image': 'assets/images/m1.png'},
+  {'title': 'Flexible EMIs', 'description': 'Pay in easy installments tailored to your budget', 'image': 'assets/images/m2.png'},
+  {'title': 'Low Interest Rates', 'description': 'Affordable interest rates to suit your needs', 'image': 'assets/images/m3.png'},
+];
 
   @override
   void initState() {
@@ -176,18 +208,15 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
       productType: widget.serviceDetails?.psLcategory ?? '',
     );
 
-    // _blobController = AnimationController(
-    //   vsync: this, duration: const Duration(seconds: 20),
-    // )..repeat();
-
     _startCarousel();
     _fetchInitialData();
+    _initDeepLinks();
   }
 
   @override
   void dispose() {
     _carouselTimer?.cancel();
-    // _blobController.dispose();
+    _deepLinkSub?.cancel();
     super.dispose();
   }
 
@@ -200,33 +229,283 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
   }
 
   Future<void> _fetchInitialData() async {
-    await Future.wait([_fetchCategories(), _fetchShops()]);
+    await Future.wait([_fetchCategories(), _fetchShops(), _fetchBranches()]);
   }
 
   Future<void> _fetchCategories() async {
     try {
-      final res = await http.get(Uri.parse('${ApiConstants.adminBaseUrl}/categories.php'));
-      final body = jsonDecode(res.body) as List<dynamic>;
-      setState(() => _categories = body
-          .map((e) => CategoryModel.fromJson(e as Map<String, dynamic>))
-          .toList());
-    } catch (e) { debugPrint('Categories error: $e'); }
-  }
+      final body = await ApiService.getLoanCategories();
+      final dynamic raw = body['data'] ?? body['list'] ?? body;
+      final List<dynamic> list = raw is List ? raw : <dynamic>[];
+      final cats = list.whereType<Map<String, dynamic>>().toList();
+      setState(() {
+        _categories = cats;
+
+        // Resolve prefilled category name (e.g. "Mobile") to its real id,
+        // only if productType isn't already a valid id from these categories.
+        final currentValue = _formData.productType;
+        final isAlreadyValidId = cats.any((c) => c['id']?.toString() == currentValue);
+
+        if (currentValue.isNotEmpty && !isAlreadyValidId) {
+          final match = cats.firstWhere(
+            (c) => (c['name']?.toString().toLowerCase() ?? '') ==
+                currentValue.toLowerCase(),
+            orElse: () => {},
+          );
+          if (match.isNotEmpty) {
+            _formData.productType = match['id'].toString();
+          } else {
+            // No matching category found — clear it so the user must pick
+            // manually rather than submitting an invalid value.
+            _formData.productType = '';
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('Categories error: $e');
+    }
+}
 
   Future<void> _fetchShops() async {
     try {
-      final res = await http.get(Uri.parse('${ApiConstants.adminBaseUrl}/shops.php'));
-      final body = jsonDecode(res.body);
-      final allShops = (body['list'] as List<dynamic>)
-          .map((e) => ShopModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-      final category = widget.serviceDetails?.psLcategory;
+      final body = await ApiService.getActiveShops();
+      final dynamic raw = body['data'] ?? body['list'] ?? body;
+      final List<dynamic> list = raw is List ? raw : <dynamic>[];
+      setState(() => _shops = list.whereType<Map<String, dynamic>>().toList());
+    } catch (e) {
+      debugPrint('Shops error: $e');
+    }
+  }
+
+  Future<void> _fetchBranches() async {
+    try {
+      final body = await ApiService.getBranches();
+      final dynamic raw = body['data'] ?? body['list'] ?? body;
+      final List<dynamic> list = raw is List ? raw : <dynamic>[];
+      setState(() => _branches = list.whereType<Map<String, dynamic>>().toList());
+    } catch (e) {
+      debugPrint('Branches error: $e');
+    }
+  }
+
+  // ── DigiLocker ─────────────────────────────────────────────────────────────
+
+  void _initDeepLinks() {
+    final appLinks = AppLinks();
+    _deepLinkSub = appLinks.uriLinkStream.listen((uri) {
+      if (uri.host == 'digilocker-callback' && mounted) {
+        final encdata = uri.queryParameters['encdata'] ?? '';
+        if (encdata.isNotEmpty) {
+          _handleDigiLockerCallback(encdata);
+        }
+      }
+    });
+  }
+
+  Future<void> _handleDigiLockerCallback(String encdata) async {
+    setState(() => _digiLockerLoading = true);
+    try {
+      final result = await ApiService.callbackDigilocker(
+        encdata: encdata,
+        refid: _digiLockerRefId,
+        sessionToken: _digiLockerSessionToken,
+      );
+
+      final status = result['status']?.toString();
+      if (status == 'mismatch') {
+        setState(() => _digiLockerLoading = false);
+        _showMismatchDialog();
+        return;
+      }
+
+      final success = result['success'] == true || status == 'success';
+      if (!success) {
+        throw Exception(result['message']?.toString() ?? 'Verification failed');
+      }
+
+      debugPrint('=== DIGILOCKER CALLBACK RAW RESULT: $result ===');
+      final data = result['data'] as Map<String, dynamic>?;
       setState(() {
-        _shops = category != null
-            ? allShops.where((s) => s.categories.any((c) => c == category)).toList()
-            : allShops;
+        _formData.isAadharVerified = true;
+        if (data != null) {
+          if ((data['fullName'] ?? data['name']) != null) {
+            _formData.fullName = (data['fullName'] ?? data['name']).toString();
+          }
+          if (data['dob'] != null) _formData.dob = data['dob'].toString();
+          if (data['gender'] != null) _formData.gender = data['gender'].toString();
+          if (data['address'] != null) _formData.address = data['address'].toString();
+          if (data['aadharNumber'] != null) {
+            _formData.aadharNumber = data['aadharNumber'].toString();
+          }
+          if (data['aadharImage'] != null) {
+            _formData.aadharDocFilename = data['aadharImage'].toString();
+          }
+          if (data['aadharImageBack'] != null) {
+            _formData.aadharDocBackFilename = data['aadharImageBack'].toString();
+          }
+          if (data['panImage'] != null) {
+            _formData.panDocFilename = data['panImage'].toString();
+          }
+          if (data['panNumber'] != null) {
+            _formData.panNumber = data['panNumber'].toString();
+          }
+          if (data['employmentType'] != null) {
+            _formData.employmentType = data['employmentType'].toString();
+          }
+          if (data['monthlyIncome'] != null) {
+            _formData.monthlyIncome = data['monthlyIncome'].toString();
+          }
+          if (data['companyName'] != null) {
+            _formData.companyName = data['companyName'].toString();
+          }
+          if (data['workExperience'] != null) {
+            _formData.workExperience = data['workExperience'].toString();
+          }
+          if (data['customerId'] != null) {
+            _formData.customerId = data['customerId'].toString();
+          }
+        }
+        _digiLockerLoading = false;
       });
-    } catch (e) { debugPrint('Shops error: $e'); }
+      _showSuccessDialog();
+    } catch (e) {
+      setState(() {
+        _errors['digilocker'] = e.toString().replaceFirst('Exception: ', '');
+        _digiLockerLoading = false;
+      });
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 56),
+            SizedBox(height: 12),
+            Text('Aadhaar Verified Successfully',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 6),
+            Text('Your details have been successfully verified with Aadhaar',
+                textAlign: TextAlign.center),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16A34A)),
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() => _currentStep = 2);
+              },
+              child: const Text('Continue'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMismatchDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.cancel, color: Color(0xFFDC2626), size: 56),
+            SizedBox(height: 12),
+            Text('Verification Failed',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 6),
+            Text(
+              'The details you provided do not match with Aadhaar records. Please check and try again.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  void _showPanSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 56),
+            SizedBox(height: 12),
+            Text('PAN Verified Successfully',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 6),
+            Text('Your details have been successfully verified with PAN',
+                textAlign: TextAlign.center),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16A34A)),
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() => _currentStep++);
+              },
+              child: const Text('Continue'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _initiateDigiLocker() async {
+    if (_formData.customerId.isEmpty) {
+      setState(() => _errors['digilocker'] = 'Customer ID not found. Please try again.');
+      return;
+    }
+    setState(() => _digiLockerLoading = true);
+    try {
+      final result = await ApiService.initiateDigilocker(
+        _formData.customerId,
+        platform: 'mobile',
+        );
+      final data = result['data'] as Map<String, dynamic>? ?? {};
+      final authUrl = data['authorization_url']?.toString() ?? '';
+      if (authUrl.isEmpty) throw Exception('Failed to get DigiLocker URL');
+      _digiLockerRefId = data['refid']?.toString() ?? '';
+      _digiLockerSessionToken = data['session_token']?.toString() ?? '';
+      final uri = Uri.parse(authUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw Exception('Could not launch DigiLocker');
+      }
+    } catch (e) {
+      setState(() => _errors['digilocker'] =
+          e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      setState(() => _digiLockerLoading = false);
+    }
   }
 
   // ─── Validation ───────────────────────────────────────────────────────────
@@ -245,24 +524,57 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
         if (_formData.gender.isEmpty)  errors['gender']  = 'Gender is required';
         if (_formData.address.trim().isEmpty) errors['address'] = 'Address is required';
         break;
-      case 1:
-        if (_formData.aadharNumber.isEmpty) {
-          errors['aadharNumber'] = 'Aadhar number is required';
-        } else if (!RegExp(r'^\d{12}$').hasMatch(_formData.aadharNumber)) {
-          errors['aadharNumber'] = 'Enter valid 12-digit Aadhar number';
-        }
-        if (_formData.aadharDoc == null) {
-          errors['aadharDoc'] = 'Aadhar Front Side document is required';
-        } else if (_formData.aadharDoc!.lengthSync() > 5 * 1024 * 1024) {
-          errors['aadharDoc'] = 'Aadhar Front Side document must be less than 5MB';
-        }
-        if (_formData.aadharDocBack == null) {
-          errors['aadharDocBack'] = 'Aadhar Back Side document is required';
-        } else if (_formData.aadharDocBack!.lengthSync() > 5 * 1024 * 1024) {
-          errors['aadharDocBack'] = 'Aadhar Back Side document must be less than 5MB';
+      case 1: // Aadhaar — only validate if not yet verified
+        if (!_formData.isAadharVerified) {
+          final isMaskedAadhaar = _formData.aadharNumber.contains('•') ||
+              _formData.aadharNumber.contains('X');
+          if (_formData.aadharNumber.isEmpty) {
+            errors['aadharNumber'] = 'Aadhar number is required';
+          } else if (!isMaskedAadhaar &&
+              !RegExp(r'^\d{12}$').hasMatch(_formData.aadharNumber)) {
+            errors['aadharNumber'] = 'Enter valid 12-digit Aadhar number';
+          }
+          final hasExistingAadharDoc = _formData.aadharDoc == null &&
+              (_formData.aadharDocFilename?.isNotEmpty ?? false);
+          if (_formData.aadharDoc == null && !hasExistingAadharDoc) {
+            errors['aadharDoc'] = 'Aadhar Front Side document is required';
+          } else if (_formData.aadharDoc != null &&
+              _formData.aadharDoc!.lengthSync() > 5 * 1024 * 1024) {
+            errors['aadharDoc'] = 'Aadhar Front Side document must be less than 5MB';
+          }
+          final hasExistingAadharDocBack = _formData.aadharDocBack == null &&
+              (_formData.aadharDocBackFilename?.isNotEmpty ?? false);
+          if (_formData.aadharDocBack == null && !hasExistingAadharDocBack) {
+            errors['aadharDocBack'] = 'Aadhar Back Side document is required';
+          } else if (_formData.aadharDocBack != null &&
+              _formData.aadharDocBack!.lengthSync() > 5 * 1024 * 1024) {
+            errors['aadharDocBack'] = 'Aadhar Back Side document must be less than 5MB';
+          }
         }
         break;
-      case 2:
+      case 2: // PAN — optional, but validated fully once entered
+        if (!_formData.isPanVerified) {
+          if (_formData.panNumber.isNotEmpty) {
+            final isMaskedPan = _formData.panNumber.contains('X');
+            if (!isMaskedPan &&
+                !RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$').hasMatch(_formData.panNumber)) {
+              errors['panNumber'] = 'Enter valid PAN number (e.g., ABCDE1234F)';
+            }
+            if (_formData.panFullName.trim().isEmpty) {
+              errors['panFullName'] = 'Full name as per PAN is required';
+            }
+            final hasExistingPanDoc = _formData.panDoc == null &&
+                (_formData.panDocFilename?.isNotEmpty ?? false);
+            if (_formData.panDoc == null && !hasExistingPanDoc) {
+              errors['panDoc'] = 'PAN document is required when PAN number is provided';
+            } else if (_formData.panDoc != null &&
+                _formData.panDoc!.lengthSync() > 5 * 1024 * 1024) {
+              errors['panDoc'] = 'PAN document must be less than 5MB';
+            }
+          }
+        }
+        break;
+      case 3: // Employment
         if (_formData.employmentType.isEmpty) errors['employmentType'] = 'Employment type is required';
         if (_formData.companyName.trim().isEmpty) errors['companyName'] = 'Company name is required';
         if (_formData.monthlyIncome.isEmpty) {
@@ -272,10 +584,12 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
         }
         if (_formData.workExperience.isEmpty) errors['workExperience'] = 'Work experience is required';
         break;
-      case 3:
+      case 4: // Product
+        if (_formData.productType.isEmpty)   errors['productType'] = 'Product type is required';
         if (_formData.brand.trim().isEmpty)  errors['brand']  = 'Brand is required';
         if (_formData.model.trim().isEmpty)  errors['model']  = 'Model is required';
         if (_formData.shopName.isEmpty)      errors['shopName'] = 'Shop name is required';
+        if (_formData.branchId.isEmpty)      errors['branchId'] = 'Branch is required';
         if (_formData.productPrice.isEmpty) {
           errors['productPrice'] = 'Product price is required';
         } else if ((double.tryParse(_formData.productPrice) ?? 0) < 1000) {
@@ -285,8 +599,8 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
         final pp = double.tryParse(_formData.productPrice) ?? 0;
         if (dp < 0) {
           errors['downPayment'] = 'DownPayment amount cannot be negative';
-        } else if (_formData.downPayment.isEmpty || dp > 0) {
-          if (dp > pp) errors['downPayment'] = 'DownPayment amount cannot be more than product price';
+        } else if (_formData.downPayment.isNotEmpty && dp > pp) {
+          errors['downPayment'] = 'DownPayment amount cannot be more than product price';
         }
         break;
     }
@@ -294,64 +608,281 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
     return errors.isEmpty;
   }
 
+  /// Returns a local File to upload for a given doc slot.
+  /// If the user picked a new file, use it. Otherwise, if a remote
+  /// filename exists from a previous attempt, fetch it via the same
+  /// presigned-URL flow SecureImage uses, then download the actual
+  /// bytes so we always send a real file in the multipart request —
+  /// the backend requires the file to be present every time, even on
+  /// a retry where nothing was re-picked.
+  Future<File?> _resolveUploadFile(File? localFile, String? remoteFilename) async {
+    if (localFile != null) return localFile;
+    if (remoteFilename == null || remoteFilename.isEmpty) return null;
+
+    try {
+      final token = await AuthService.getAccessToken();
+      final basename = remoteFilename.split('/').last.split('\\').last;
+
+      final presignUri = Uri.parse(
+        '${ApiConstants.newAuthBaseUrl}/api/v2/mobile/files/presign'
+        '?folder=customers&filename=$basename',
+      );
+      final presignRes = await http.get(presignUri, headers: {
+        'Authorization': 'Bearer $token',
+      });
+
+      debugPrint('=== _resolveUploadFile PRESIGN STATUS: ${presignRes.statusCode}');
+      debugPrint('=== _resolveUploadFile PRESIGN BODY: ${presignRes.body}');
+
+      if (presignRes.statusCode != 200) return null;
+      final presignData = jsonDecode(presignRes.body);
+      if (presignData['success'] != true) return null;
+
+      final path = presignData['data']['url'] as String;
+      final finalUrl = '${ApiConstants.newAuthBaseUrl}/api/v2/mobile$path';
+      debugPrint('=== _resolveUploadFile FINAL image URL: $finalUrl');
+
+      final imageRes = await http.get(Uri.parse(finalUrl));
+      if (imageRes.statusCode != 200) return null;
+
+      final tempDir = await Directory.systemTemp.createTemp('loan_docs');
+      final ext = basename.contains('.') ? basename.split('.').last : 'jpg';
+      final tempFile = File(
+        '${tempDir.path}/reupload_${DateTime.now().millisecondsSinceEpoch}.$ext',
+      );
+      await tempFile.writeAsBytes(imageRes.bodyBytes);
+      return tempFile;
+    } catch (e) {
+      debugPrint('=== _resolveUploadFile ERROR: $e ===');
+      return null;
+    }
+  }
+
   // ─── Submit ───────────────────────────────────────────────────────────────
 
-  Future<void> _handleNext() async {
-    if (!_validateStep()) return;
-    setState(() => _loading = true);
+ Future<void> _handleNext() async {
+    debugPrint('=== _handleNext called, currentStep: $_currentStep, kSteps.length: ${kSteps.length}');
+    if (!_validateStep()) {
+      debugPrint('=== Validation failed, errors: $_errors');
+      return;
+    }
+    debugPrint('=== Validation passed');
+    setState(() { _loading = true; _errors.remove('submit'); });
+
     try {
+      // ── Step 1: Aadhaar ──────────────────────────────────────────────────
+      if (_currentStep == 1) {
+        if (_formData.isAadharVerified) {
+          setState(() => _currentStep++);
+          return;
+
+        }
+        debugPrint('=== REGISTER CUSTOMER REQUEST — fullName: "${_formData.fullName}", '
+            'email: "${_formData.email}", dob: "${_formData.dob}", '
+            'gender: "${_formData.gender}", address: "${_formData.address}", '
+            'customerId: "${_formData.customerId}" ===');
+        debugPrint('=== aadharDoc: ${_formData.aadharDoc?.path}, exists: ${_formData.aadharDoc?.existsSync()}');
+        debugPrint('=== aadharDocBack: ${_formData.aadharDocBack?.path}, exists: ${_formData.aadharDocBack?.existsSync()}');
+        debugPrint('=== aadharDocFilename (remote): ${_formData.aadharDocFilename}');
+        debugPrint('=== aadharDocBackFilename (remote): ${_formData.aadharDocBackFilename}');
+
+        final aadharFrontToSend =
+            await _resolveUploadFile(_formData.aadharDoc, _formData.aadharDocFilename);
+        final aadharBackToSend =
+            await _resolveUploadFile(_formData.aadharDocBack, _formData.aadharDocBackFilename);
+
+        if (aadharFrontToSend == null || aadharBackToSend == null) {
+          setState(() {
+            _loading = false;
+            _errors['submit'] = 'Could not load your existing Aadhaar documents. '
+                'Please re-upload the Aadhaar front and back images.';
+          });
+          return;
+        }
+
+        final result = await ApiService.registerCustomer(
+          {
+            'phoneNumber': _formData.phoneNumber,
+            'fullName': _formData.fullName,
+            'panFullName': _formData.panFullName,
+            'email': _formData.email,
+            'dob': _formData.dob,
+            'gender': _formData.gender,
+            'address': _formData.address,
+            'aadharNumber': _formData.aadharNumber,
+            'panNumber': _formData.panNumber,
+            'tempToken': _formData.sessionToken,
+            if (_formData.customerId.isNotEmpty) 'customerId': _formData.customerId,
+          },
+          aadharImagePath: aadharFrontToSend.path,
+          aadharImageBackPath: aadharBackToSend.path,
+          panImagePath: _formData.panDoc?.path,
+        );
+        debugPrint('=== REGISTER CUSTOMER RAW RESULT: $result ===');
+
+        // Pull whatever we can from the response regardless of `success` —
+        // an "already registered" response still carries the customerId
+        // and the already-uploaded doc filenames, and we still need to
+        // send the user through DigiLocker since Aadhaar isn't verified yet.
+        final resData = result['data'] as Map<String, dynamic>?;
+        final cid = resData?['customerId']?.toString()
+            ?? resData?['id']?.toString()
+            ?? '';
+
+        setState(() {
+          if (cid.isNotEmpty) _formData.customerId = cid;
+          if (resData?['aadharImage'] != null) {
+            _formData.aadharDocFilename = resData!['aadharImage'].toString();
+          }
+          if (resData?['aadharImageBack'] != null) {
+            _formData.aadharDocBackFilename = resData!['aadharImageBack'].toString();
+          }
+        });
+
+        // IMPORTANT: don't infer success just from customerId being present —
+        // the backend keeps returning the existing customerId even when it
+        // rejects the update (e.g. missing Aadhaar image), which was causing
+        // us to launch DigiLocker without actually saving the edited
+        // personal details.
+        if (result['success'] != true) {
+          setState(() => _errors['submit'] =
+              result['message']?.toString() ?? 'Failed to save');
+          return;
+        }
+
+        if (_formData.customerId.isEmpty) {
+          setState(() => _errors['submit'] =
+              result['message']?.toString() ?? 'Failed to save');
+          return;
+        }
+
+        // Must release loading before browser launch
+        setState(() => _loading = false);
+        await _initiateDigiLocker();
+        return;
+      }
+
+      // ── Step 2: PAN (optional) ────────────────────────────────────────────
+      if (_currentStep == 2) {
+        if (_formData.isPanVerified || _formData.panNumber.isEmpty) {
+          setState(() => _currentStep++);
+          return;
+        }
+        // if (_formData.panDoc == null) {
+        //   setState(() => _errors['panDoc'] = 'PAN document is required');
+        //   return;
+        // }
+        debugPrint('=== PAN VERIFY REQUEST — customerId: "${_formData.customerId}", '
+            'panNumber: "${_formData.panNumber}", panFullName: "${_formData.panFullName}" ===');
+        final result = await ApiService.verifyPan(
+          customerId: _formData.customerId,
+          panNumber: _formData.panNumber,
+          panFullName: _formData.panFullName,
+          panImagePath: _formData.panDoc?.path,
+        );
+        debugPrint('=== VERIFY PAN RAW RESULT: $result ===');
+        if (result['success'] == true || result['status'] == 'success') {
+          final resData = result['data'] as Map<String, dynamic>?;
+          setState(() {
+            _formData.isPanVerified = true;
+            if (resData?['panImage'] != null) {
+              _formData.panDocFilename = resData!['panImage'].toString();
+            }
+          });
+          _showPanSuccessDialog();
+        } else {
+          setState(() => _errors['panNumber'] =
+              result['message']?.toString() ?? 'PAN verification failed');
+        }
+        return;
+      }
+
+      // ── Step 3: Employment ────────────────────────────────────────────────
+      if (_currentStep == 3) {
+        debugPrint('=== Step 3 — customerId: "${_formData.customerId}"');
+        if (_formData.customerId.isNotEmpty) {
+          debugPrint('=== Calling updateEmployment');
+          final result = await ApiService.updateEmployment(
+            _formData.customerId,
+            {
+              'employmentType': _formData.employmentType,
+              'monthlyIncome': _formData.monthlyIncome,
+              'companyName': _formData.companyName,
+              'workExperience': _formData.workExperience,
+            },
+          );
+          debugPrint('=== updateEmployment result: $result');
+          if (result['success'] == true) {
+            setState(() => _currentStep++);
+          } else {
+            setState(() => _errors['submit'] =
+                result['message']?.toString() ?? 'Failed to save employment');
+          }
+        } else {
+          debugPrint('=== No customerId, advancing directly');
+          setState(() => _currentStep++);
+        }
+        return;
+      }
+
+      // ── Step 4: Final submission ──────────────────────────────────────────
       if (_currentStep == kSteps.length - 1) {
         await _submitForm();
-      } else {
-        setState(() => _currentStep++);
+        return;
       }
+
+      // ── Default: advance step ─────────────────────────────────────────────
+      setState(() => _currentStep++);
+
     } catch (e) {
-      setState(() => _errors['submit'] = e.toString());
+      debugPrint('=== _handleNext EXCEPTION: $e');
+      setState(() => _errors['submit'] =
+          e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _submitForm() async {
-    final request = http.MultipartRequest(
-      'POST', Uri.parse('${ApiConstants.adminBaseUrl}/submit_loan.php'),
-    );
-    request.fields.addAll({
-      'phoneNumber': _formData.phoneNumber, 'fullName': _formData.fullName,
-      'email': _formData.email, 'dob': _formData.dob,
-      'address': _formData.address, 'aadharNumber': _formData.aadharNumber,
-      'panNumber': _formData.panNumber, 'employmentType': _formData.employmentType,
-      'monthlyIncome': _formData.monthlyIncome, 'companyName': _formData.companyName,
-      'workExperience': _formData.workExperience, 'productType': _formData.productType,
-      'shopName': _formData.shopName, 'brand': _formData.brand,
-      'model': _formData.model, 'productPrice': _formData.productPrice,
-      'downPayment': _formData.downPayment, 'gender': _formData.gender,
-    });
-    if (_formData.aadharDoc != null)
-      request.files.add(await http.MultipartFile.fromPath('aadharDoc', _formData.aadharDoc!.path));
-    if (_formData.aadharDocBack != null)
-      request.files.add(await http.MultipartFile.fromPath('aadharDocBack', _formData.aadharDocBack!.path));
-    if (_formData.panDoc != null)
-      request.files.add(await http.MultipartFile.fromPath('panDoc', _formData.panDoc!.path));
-
-    final streamed = await request.send();
-    final res = await http.Response.fromStream(streamed);
-    final body = jsonDecode(res.body);
-
-    if (body['success'] == true) {
-      await http.post(
-        Uri.parse('${ApiConstants.adminBaseUrl}/notifications.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'message': 'Your Mobile loan application has been submitted successfully',
-          'user_id': widget.userProfile?.id,
-        }),
-      );
-      setState(() => _isSubmitted = true);
-    } else {
-      throw Exception(body['message'] ?? 'Submission failed');
-    }
+Future<void> _submitForm() async {
+  final userProfile = await AuthService.getUserProfile();
+  debugPrint('=== userProfile keys: ${userProfile?.keys}');
+  debugPrint('=== userProfile full: $userProfile');
+  debugPrint('=== SUBMIT — raw downPayment value: "${_formData.downPayment}" ===');
+  debugPrint('=== SUBMIT — downPayment isEmpty: ${_formData.downPayment.isEmpty} ===');
+  final result = await ApiService.submitLoanApplication({    'customerId': _formData.customerId,
+    'phoneNumber': _formData.phoneNumber,
+    'otp': _formData.otp,
+    'fullName': _formData.fullName,
+    'panFullName': _formData.panFullName,
+    'email': _formData.email,
+    'dob': _formData.dob,
+    'gender': _formData.gender,
+    'address': _formData.address,
+    'aadharNumber': _formData.aadharNumber,
+    'panNumber': _formData.panNumber,
+    'sessionToken': _formData.sessionToken,
+    'isAadharVerified': _formData.isAadharVerified,
+    'isPanVerified': _formData.isPanVerified,
+    'employmentType': _formData.employmentType,
+    'monthlyIncome': _formData.monthlyIncome,
+    'companyName': _formData.companyName,
+    'workExperience': _formData.workExperience,
+    'productType': _formData.productType,
+    'brand': _formData.brand,
+    'model': _formData.model,
+    'productPrice': _formData.productPrice,
+    'downPayment': _formData.downPayment,
+    'shopName': _formData.shopName,
+    'branchId': _formData.branchId,
+    'userName': userProfile?['username']?.toString() ?? '',
+    'userDepartment': userProfile?['role']?.toString() ?? '',
+  });
+  if (result['success'] == true) {
+    setState(() => _isSubmitted = true);
+  } else {
+    throw Exception(result['message']?.toString() ?? 'Submission failed');
   }
+}
 
   void _handleBack() {
     if (_currentStep == 0) {
@@ -365,20 +896,22 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (_isSubmitted) {
-      return _SuccessScreen(
-        onClose: () {
-          setState(() => _isSubmitted = false);
-          Navigator.of(context).popUntil((r) => r.isFirst);
-        },
-      );
-    }
+      if (_isSubmitted) {
+        return _SuccessScreen(
+          onClose: () {
+            setState(() => _isSubmitted = false);
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomeScreen(initialTab: 2)),
+              (route) => false,
+            );
+          },
+        );
+      }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // React: bg-gradient-to-b from-red-50 via-white to-blue-50
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -392,63 +925,17 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
               ),
             ),
           ),
-          // React: bg-[linear-gradient(rgba(0,0,0,0.02)_1px,...)] bg-[size:32px_32px]
           CustomPaint(painter: _GridPainter(), child: const SizedBox.expand()),
-          // // React: -right-40 top-20 w-96 h-96 bg-red-100 ... animate-blob
-          // AnimatedBuilder(
-          //   animation: _blobController,
-          //   builder: (_, __) {
-          //     final t = _blobController.value * 2 * 3.14159;
-          //     final dx = 20 * (0.5 - 0.5 * (t * 0.7).clamp(-1.0, 1.0));
-          //     final dy = -50 * (0.5 - 0.5 * (t * 0.5).clamp(-1.0, 1.0));
-          //     final scale = 1.0 + 0.1 * (0.5 - 0.5 * (t * 0.3).clamp(-1.0, 1.0));
-          //     return Positioned(
-          //       right: -160 + dx, top: 80 + dy,
-          //       child: Transform.scale(scale: scale,
-          //         child: Container(width: 384, height: 384,
-          //           decoration: BoxDecoration(
-          //             color: const Color(0xFFFEE2E2).withOpacity(0.3), // red-100
-          //             shape: BoxShape.circle,
-          //           ),
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
-          // // React: -left-40 bottom-20 w-96 h-96 bg-blue-100 ... animation-delay-2000
-          // AnimatedBuilder(
-          //   animation: _blobController,
-          //   builder: (_, __) {
-          //     final t = _blobController.value * 2 * 3.14159 + 2.0;
-          //     final dx = -20 * (0.5 - 0.5 * (t * 0.7).clamp(-1.0, 1.0));
-          //     final dy = 50 * (0.5 - 0.5 * (t * 0.5).clamp(-1.0, 1.0));
-          //     final scale = 0.9 + 0.1 * (0.5 - 0.5 * (t * 0.3).clamp(-1.0, 1.0));
-          //     return Positioned(
-          //       left: -160 + dx, bottom: 80 + dy,
-          //       child: Transform.scale(scale: scale,
-          //         child: Container(width: 384, height: 384,
-          //           decoration: BoxDecoration(
-          //             color: const Color(0xFFDBEAFE).withOpacity(0.3), // blue-100
-          //             shape: BoxShape.circle,
-          //           ),
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
-          // Main content column
           SafeArea(
             child: Column(
               children: [
                 _buildHeader(),
-                // React: StepIndicator only shown when isPhoneVerified
                 if (_isPhoneVerified) _buildStepIndicator(),
                 Expanded(
                   child: _isPhoneVerified
                       ? _buildFormBody()
                       : _buildOtpBody(),
                 ),
-                // React: NextButton only shown when isPhoneVerified
                 if (_isPhoneVerified) _buildNextButton(),
               ],
             ),
@@ -459,8 +946,6 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
   }
 
   // ─── Header ───────────────────────────────────────────────────────────────
-  // React: sticky top-0 bg-white/80 backdrop-blur border-b border-slate-200
-  // Row: Back button | service title | HelpCircle icon
 
   Widget _buildHeader() {
     return Container(
@@ -472,7 +957,6 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // React: ArrowLeft + "Back" text, onClick = handleBack
           GestureDetector(
             onTap: _isPhoneVerified ? _handleBack : () => Navigator.of(context).pop(),
             child: Row(
@@ -486,13 +970,11 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
               ],
             ),
           ),
-          // React: serviceDetails?.pstitle || 'Loan Service'
           Text(
             widget.serviceDetails?.psTitle ?? 'Loan Service',
             style: const TextStyle(
                 fontSize: 18, fontWeight: FontWeight.w600, color: kSlate900),
           ),
-          // React: HelpCircle icon button
           IconButton(
             onPressed: () {},
             icon: Icon(Icons.help_outline, color: Colors.grey.shade600, size: 24),
@@ -503,8 +985,6 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
   }
 
   // ─── Step Indicator ───────────────────────────────────────────────────────
-  // React: StepIndicator component — "Step X of Y" | "Z%" | progress bar
-  // Progress bar: bg-gradient-to-r from-red-600 to-red-600
 
   Widget _buildStepIndicator() {
     final progress = (_currentStep + 1) / kSteps.length;
@@ -538,7 +1018,6 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
             ],
           ),
           const SizedBox(height: 8),
-          // React: h-2 bg-gray-200 rounded-full overflow-hidden + inner div bg-gradient red-600
           ClipRRect(
             borderRadius: BorderRadius.circular(100),
             child: LinearProgressIndicator(
@@ -554,7 +1033,6 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
   }
 
   // ─── OTP Body ─────────────────────────────────────────────────────────────
-  // React: Swiper carousel (top) + OTPVerification component (bottom)
 
   Widget _buildOtpBody() {
     return SingleChildScrollView(
@@ -563,11 +1041,60 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
           _buildCarousel(),
           _OtpVerificationWidget(
             initialPhone: _formData.phoneNumber,
-            onVerified: (phone) {
+            onVerified: (result) {
               _carouselTimer?.cancel();
               setState(() {
                 _isPhoneVerified = true;
-                _formData.phoneNumber = phone;
+                _formData.phoneNumber = result.phoneNumber;
+                _formData.aadharNumber = result.aadhaarNumber;
+                _formData.panNumber = result.panNumber;
+                _formData.sessionToken = result.sessionToken;
+                if (result.customerId != null && result.customerId!.isNotEmpty) {
+                  _formData.customerId = result.customerId!;
+                }
+                if (result.isAadharVerified == true) {
+                  _formData.isAadharVerified = true;
+                }
+                if (result.isPanVerified == true) {
+                  _formData.isPanVerified = true;
+                  _formData.panFullName = result.panFullName ?? '';
+                }
+                if (result.fullName != null && result.fullName!.isNotEmpty) {
+                  _formData.fullName = result.fullName!;
+                }
+                if (result.email != null && result.email!.isNotEmpty) {
+                  _formData.email = result.email!;
+                }
+                if (result.address != null && result.address!.isNotEmpty) {
+                  _formData.address = result.address!;
+                }
+                if (result.dob != null && result.dob!.isNotEmpty) {
+                  _formData.dob = result.dob!;
+                }
+                if (result.gender != null && result.gender!.isNotEmpty) {
+                  _formData.gender = result.gender!;
+                }
+                if (result.employmentType != null && result.employmentType!.isNotEmpty) {
+                  _formData.employmentType = result.employmentType!;
+                }
+                if (result.monthlyIncome != null && result.monthlyIncome!.isNotEmpty) {
+                  _formData.monthlyIncome = result.monthlyIncome!;
+                }
+                if (result.companyName != null && result.companyName!.isNotEmpty) {
+                  _formData.companyName = result.companyName!;
+                }
+                if (result.workExperience != null && result.workExperience!.isNotEmpty) {
+                  _formData.workExperience = result.workExperience!;
+                }
+                if (result.aadharImage != null && result.aadharImage!.isNotEmpty) {
+                  _formData.aadharDocFilename = result.aadharImage;
+                }
+                if (result.aadharImageBack != null && result.aadharImageBack!.isNotEmpty) {
+                  _formData.aadharDocBackFilename = result.aadharImageBack;
+                }
+                if (result.panImage != null && result.panImage!.isNotEmpty) {
+                  _formData.panDocFilename = result.panImage;
+                }
               });
             },
           ),
@@ -576,7 +1103,6 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
     );
   }
 
-  // React: Swiper with title above image, no description, dot pagination
   Widget _buildCarousel() {
     final slide = _slides[_carouselIndex];
     return Padding(
@@ -586,21 +1112,24 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
         child: Column(
           key: ValueKey(_carouselIndex),
           children: [
-            // React: text-xl font-bold text-slate-900
             Text(
               slide['title']!,
               style: const TextStyle(
                   fontSize: 20, fontWeight: FontWeight.bold, color: kSlate900),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 4),
+            Text(
+              slide['description']!,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 12),
-            // React: aspect-[16/9] w-full h-full object-contain
             AspectRatio(
               aspectRatio: 16 / 9,
               child: Image.asset(slide['image']!, fit: BoxFit.contain),
             ),
             const SizedBox(height: 16),
-            // React: Swiper pagination dots
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(_slides.length, (i) {
@@ -624,10 +1153,10 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
   }
 
   // ─── Form Body ────────────────────────────────────────────────────────────
-  // React: <main className="flex-1 overflow-y-auto"> + w-full max-w-sm mx-auto px-4 py-8
 
-  Widget _buildFormBody() {
+ Widget _buildFormBody() {
     return SingleChildScrollView(
+      key: ValueKey(_currentStep),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
       child: _buildStepContent(),
     );
@@ -636,14 +1165,13 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
   Widget _buildStepContent() {
     switch (_currentStep) {
       case 0: return _buildPersonalStep();
-      case 1: return _buildDocumentsStep();
-      case 2: return _buildEmploymentStep();
-      case 3: return _buildProductStep();
+      case 1: return _buildAadhaarStep();
+      case 2: return _buildPanStep();
+      case 3: return _buildEmploymentStep();
+      case 4: return _buildProductStep();
       default: return const SizedBox.shrink();
     }
   }
-
-  // ─── Step 0: Personal ────────────────────────────────────────────────────
 
   Widget _buildPersonalStep() {
     return _FormSection(
@@ -690,13 +1218,54 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
     );
   }
 
-  // ─── Step 1: Documents ────────────────────────────────────────────────────
-
-  Widget _buildDocumentsStep() {
+  Widget _buildAadhaarStep() {
     return _FormSection(
-      title: 'Documents',
-      subtitle: 'Upload your identity documents',
+      title: 'Aadhaar Verification',
+      subtitle: 'Verify your Aadhaar details',
       children: [
+        // Info banner
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Color(0xFF2563EB), size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Please upload clear images of your Aadhaar card.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF1D4ED8)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_formData.isAadharVerified)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20),
+                  SizedBox(width: 8),
+                  Text('Aadhaar Verified Successfully',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF15803D))),
+                ],
+              ),
+            ),
+          ),
         _LoanInputField(
           label: 'Aadhar Number',
           initialValue: _formData.aadharNumber,
@@ -704,43 +1273,167 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
           error: _errors['aadharNumber'],
           keyboardType: TextInputType.number,
           maxLength: 12,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          onChanged: (v) => setState(() { _formData.aadharNumber = v; _errors.remove('aadharNumber'); }),
+          enabled: !_formData.isAadharVerified,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            _ClearOnBackspaceFormatter(),
+          ],
+          onChanged: (v) => setState(() {
+            _formData.aadharNumber = v;
+            _errors.remove('aadharNumber');
+          }),
         ),
-        _FileUploadField(
-          label: 'Upload Front Aadhar Card (PDF/Image)',
-          value: _formData.aadharDoc,
+        _DocumentField(
+          label: 'Upload Front Aadhar Card Image',
+          localFile: _formData.aadharDoc,
+          remoteFilename: _formData.aadharDocFilename,
           error: _errors['aadharDoc'],
-          onChanged: (f) => setState(() { _formData.aadharDoc = f; _errors.remove('aadharDoc'); }),
-          onRemove: () => setState(() { _formData.aadharDoc = null; _errors.remove('aadharDoc'); }),
+          enabled: !_formData.isAadharVerified,
+          onChanged: (f) => setState(() {
+            _formData.aadharDoc = f;
+            _errors.remove('aadharDoc');
+          }),
+          onRemove: () => setState(() {
+            _formData.aadharDoc = null;
+            _errors.remove('aadharDoc');
+          }),
         ),
-        _FileUploadField(
-          label: 'Upload Back Aadhar Card (PDF/Image)',
-          value: _formData.aadharDocBack,
+        _DocumentField(
+          label: 'Upload Back Aadhar Card Image',
+          localFile: _formData.aadharDocBack,
+          remoteFilename: _formData.aadharDocBackFilename,
           error: _errors['aadharDocBack'],
-          onChanged: (f) => setState(() { _formData.aadharDocBack = f; _errors.remove('aadharDocBack'); }),
-          onRemove: () => setState(() { _formData.aadharDocBack = null; _errors.remove('aadharDocBack'); }),
+          enabled: !_formData.isAadharVerified,
+          onChanged: (f) => setState(() {
+            _formData.aadharDocBack = f;
+            _errors.remove('aadharDocBack');
+          }),
+          onRemove: () => setState(() {
+            _formData.aadharDocBack = null;
+            _errors.remove('aadharDocBack');
+          }),
         ),
+        if (!_formData.isAadharVerified && _errors['submit'] != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(children: [
+              const Icon(Icons.error_outline, size: 14, color: Color(0xFFEF4444)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(_errors['submit']!,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444))),
+              ),
+            ]),
+          ),
+        if (!_formData.isAadharVerified && _errors['digilocker'] != null)
+          Row(children: [
+            const Icon(Icons.error_outline, size: 14, color: Color(0xFFEF4444)),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(_errors['digilocker']!,
+                  style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444))),
+            ),
+          ]),
+        if (!_formData.isAadharVerified && _digiLockerLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: CircularProgressIndicator(strokeWidth: 2, color: kPrimary),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildPanStep() {
+    return _FormSection(
+      title: 'PAN Verification',
+      subtitle: 'Verify your PAN details (optional)',
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Color(0xFF2563EB), size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'PAN verification is optional. You may skip this step.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF1D4ED8)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_formData.isPanVerified)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20),
+                  SizedBox(width: 8),
+                  Text('PAN Verified Successfully',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF15803D))),
+                ],
+              ),
+            ),
+          ),
         _LoanInputField(
           label: 'PAN Number',
           initialValue: _formData.panNumber,
           placeholder: 'Enter PAN number',
           error: _errors['panNumber'],
+          enabled: !_formData.isPanVerified,
           textCapitalization: TextCapitalization.characters,
-          onChanged: (v) => setState(() { _formData.panNumber = v; _errors.remove('panNumber'); }),
+          inputFormatters: [_ClearOnBackspaceFormatter()],
+          onChanged: (v) => setState(() {
+            _formData.panNumber = v;
+            _errors.remove('panNumber');
+          }),
         ),
-        _FileUploadField(
-          label: 'Upload PAN Card (PDF/Image)',
-          value: _formData.panDoc,
+        _LoanInputField(
+          label: 'Full Name (as per PAN)',
+          initialValue: _formData.panFullName,
+          placeholder: 'Enter name exactly as on PAN card',
+          error: _errors['panFullName'],
+          enabled: !_formData.isPanVerified,
+          onChanged: (v) => setState(() {
+            _formData.panFullName = v;
+            _errors.remove('panFullName');
+          }),
+        ),
+        _DocumentField(
+          label: 'Upload PAN Card Image',
+          localFile: _formData.panDoc,
+          remoteFilename: _formData.panDocFilename,
           error: _errors['panDoc'],
-          onChanged: (f) => setState(() { _formData.panDoc = f; _errors.remove('panDoc'); }),
-          onRemove: () => setState(() { _formData.panDoc = null; _errors.remove('panDoc'); }),
+          enabled: !_formData.isPanVerified,
+          onChanged: (f) => setState(() {
+            _formData.panDoc = f;
+            _errors.remove('panDoc');
+          }),
+          onRemove: () => setState(() {
+            _formData.panDoc = null;
+            _errors.remove('panDoc');
+          }),
         ),
       ],
     );
   }
-
-  // ─── Step 2: Employment ───────────────────────────────────────────────────
 
   Widget _buildEmploymentStep() {
     return _FormSection(
@@ -781,16 +1474,54 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
     );
   }
 
-  // ─── Step 3: Product ──────────────────────────────────────────────────────
-
   Widget _buildProductStep() {
     final shopOptions = _shops
-        .map((s) => {'value': s.id, 'label': '${s.shopName}, ${s.address}, ${s.city}'})
+        .map((s) => {
+              'value': s['id']?.toString() ?? '',
+              'label':
+                  '${s['shopName'] ?? s['shop_name'] ?? ''}, ${s['address'] ?? ''}, ${s['city'] ?? ''}',
+            })
         .toList();
+
+    final branchOptions = _branches
+        .map((b) => {
+              'value': b['id']?.toString() ?? '',
+              'label':
+                  '${b['branch_name'] ?? b['branchName'] ?? ''} (${b['branch_code'] ?? ''})',
+            })
+        .toList();
+
+    final categoryOptions = _categories
+        .map((c) => {
+              'value': c['id']?.toString() ?? '',
+              'label': c['name']?.toString() ?? '',
+            })
+        .toList();
+
     return _FormSection(
       title: 'Product Details',
       subtitle: 'What would you like to purchase?',
       children: [
+        _SelectPopupField(
+          label: 'Select Branch',
+          value: _formData.branchId,
+          options: branchOptions,
+          error: _errors['branchId'],
+          onChanged: (v) => setState(() {
+            _formData.branchId = v;
+            _errors.remove('branchId');
+          }),
+        ),
+        _SelectPopupField(
+          label: 'Product Type',
+          value: _formData.productType,
+          options: categoryOptions,
+          error: _errors['productType'],
+          onChanged: (v) => setState(() {
+            _formData.productType = v;
+            _errors.remove('productType');
+          }),
+        ),
         _LoanInputField(
           label: 'Brand',
           initialValue: _formData.brand,
@@ -833,12 +1564,6 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
       ],
     );
   }
-
-  // ─── Next / Submit Button ─────────────────────────────────────────────────
-  // React: NextButton — relative w-full group + absolute gradient blur layer
-  //        + inner bg-red-600 py-4 rounded-xl flex items-center justify-center
-  //        Shows Loader2 + "Processing..." when loading
-  //        Shows text + ArrowLeft rotate-180 when idle
 
   Widget _buildNextButton() {
     final isLast = _currentStep == kSteps.length - 1;
@@ -886,7 +1611,6 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
                               fontSize: 15, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(width: 8),
-                        // React: ArrowLeft rotate-180 = ArrowRight / forward
                         const Icon(Icons.arrow_forward, size: 20),
                       ],
                     ),
@@ -897,12 +1621,66 @@ class _MobileLoanFormScreenState extends State<MobileLoanFormScreen>
   }
 }
 
-// ─── OTP Verification Widget ──────────────────────────────────────────────────
-// Mirrors React OTPVerification component UI exactly
+// ─── OTP Verification Result ───────────────────────────────────────────────────
+
+class OtpVerificationResult {
+  final String phoneNumber;
+  final String aadhaarNumber;
+  final String panNumber;
+  final String sessionToken;
+  final String? fullName;
+  final String? email;
+  final String? address;
+  final String? customerId;
+  final String? panFullName;
+  final bool? isAadharVerified;
+  final bool? isPanVerified;
+  final String? employmentType;
+  final String? monthlyIncome;
+  final String? companyName;
+  final String? workExperience;
+  final String? dob;
+  final String? gender;
+  final String? aadharImage;
+  final String? aadharImageBack;
+  final String? panImage;
+
+
+  const OtpVerificationResult({
+    required this.phoneNumber,
+    required this.aadhaarNumber,
+    required this.panNumber,
+    required this.sessionToken,
+    this.fullName,
+    this.email,
+    this.address,
+    this.customerId,
+    this.panFullName,
+    this.isAadharVerified,
+    this.isPanVerified,
+    this.employmentType,
+    this.monthlyIncome,
+    this.companyName,
+    this.workExperience,
+    this.dob,
+    this.gender,
+    this.aadharImage,
+    this.aadharImageBack,
+    this.panImage,
+  });
+}
+
+// ─── OTP Verification Widget (3-step flow mirroring React OTPVerification) ────
+// Step 1: Phone + Aadhaar + PAN form (client-side validation only — your
+//         current backend has no identity-precheck endpoint, so this step
+//         just collects the fields and moves on)
+// Step 2: Confirm masked mobile number -> ApiService.sendOtp (newAuthBaseUrl)
+// Step 3: 6-digit OTP entry with resend timer -> ApiService.verifyOtp /
+//         ApiService.resendOtp (newAuthBaseUrl)
 
 class _OtpVerificationWidget extends StatefulWidget {
   final String initialPhone;
-  final void Function(String phone) onVerified;
+  final void Function(OtpVerificationResult result) onVerified;
 
   const _OtpVerificationWidget({
     Key? key, required this.initialPhone, required this.onVerified,
@@ -913,18 +1691,29 @@ class _OtpVerificationWidget extends StatefulWidget {
 }
 
 class _OtpVerificationWidgetState extends State<_OtpVerificationWidget> {
+  // Step control: 1 = form, 2 = confirm, 3 = otp
+  int _step = 1;
+
   final _phoneController = TextEditingController();
+  final _aadharNumberCtrl = TextEditingController();
+  final _panNumberCtrl = TextEditingController();
+  final _panFullNameCtrl = TextEditingController();
+
+  String _precheckPhone = '';
+  String _requestId = '';
+  bool _showUpdatePrompt = false;
+  Map<String, dynamic>? _fetchedCustomer;
+
   final List<TextEditingController> _otpControllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
 
-  bool _phoneSent = false;
   bool _loading = false;
+  String? _error;
+
   int _resendTimer = 30;
   bool _canResend = false;
   Timer? _timer;
-  String? _phoneError;
-  String? _otpError;
 
   @override
   void initState() {
@@ -935,13 +1724,22 @@ class _OtpVerificationWidgetState extends State<_OtpVerificationWidget> {
   @override
   void dispose() {
     _phoneController.dispose();
+    _aadharNumberCtrl.dispose();
+    _panNumberCtrl.dispose();
+    _panFullNameCtrl.dispose();
     for (final c in _otpControllers) c.dispose();
     for (final f in _otpFocusNodes) f.dispose();
     _timer?.cancel();
     super.dispose();
   }
 
+  String _maskPhone(String num) {
+    if (num.isEmpty) return '';
+    return '*****${num.substring(num.length - 4)}';
+  }
+
   void _startResendTimer() {
+    _timer?.cancel();
     setState(() { _resendTimer = 30; _canResend = false; });
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) return;
@@ -952,63 +1750,224 @@ class _OtpVerificationWidgetState extends State<_OtpVerificationWidget> {
     });
   }
 
-  Future<void> _sendOtp() async {
-    final phone = _phoneController.text.trim();
-    if (phone.length != 10) {
-      setState(() => _phoneError = 'Enter valid 10-digit phone number');
+  // ─── Step 1 — Validate details, move to confirm step ───────────────────────
+
+  Future<void> _handlePhoneSubmit() async {
+  final phone = _phoneController.text.trim();
+  final aadhaar = _aadharNumberCtrl.text.trim();
+  final pan = _panNumberCtrl.text.trim();
+
+  if (phone.length < 10) {
+    setState(() => _error = 'Please enter a valid 10-digit mobile number');
+    return;
+  }
+  if (aadhaar.length != 12) {
+    setState(() => _error = 'Please enter a valid 12-digit Aadhaar number');
+    return;
+  }
+
+  setState(() { _error = null; _loading = true; });
+  try {
+    debugPrint('=== LOAN OTP — checkCustomerIdentity ===');
+    debugPrint('phone: $phone, aadhaar: $aadhaar, pan: ${pan.isEmpty ? "(not provided)" : pan}');
+
+    final res = await ApiService.checkCustomerIdentity(
+      phone: phone,
+      aadhaar: aadhaar,
+      pan: pan.isEmpty ? null : pan,
+    );
+
+    debugPrint('=== LOAN OTP — checkCustomerIdentity RAW RESPONSE ===');
+    debugPrint(res.toString());
+
+    if (res['success'] != true) {
+      throw Exception(res['message']?.toString() ?? 'Verification failed');
+    }
+
+    final data = res['data'] as Map<String, dynamic>?;
+    if (data != null && data['customer'] != null) {
+      _fetchedCustomer = data['customer'] as Map<String, dynamic>;
+    }
+
+    if (data != null && data['action'] == 'UPDATE_PHONE') {
+      debugPrint('=== LOAN OTP — Aadhaar already linked to a different phone (UPDATE_PHONE) ===');
+      setState(() { _showUpdatePrompt = true; _loading = false; });
       return;
     }
-    setState(() { _loading = true; _phoneError = null; });
+
+    setState(() {
+      _precheckPhone = phone;
+      _step = 2;
+    });
+  } catch (e) {
+    debugPrint('=== LOAN OTP — checkCustomerIdentity EXCEPTION: $e ===');
+    setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+  } finally {
+    if (mounted) setState(() => _loading = false);
+  }
+}
+
+  // ─── Step 2 — Send OTP (ApiService.sendOtp -> newAuthBaseUrl) ──────────────
+
+  Future<void> _handleSendOtp() async {
+    setState(() { _error = null; _loading = true; });
     try {
-      final res = await ApiService.sendOtp(phone);
-      debugPrint('═══════════════════════════════');
-      debugPrint('OTP SEND RESPONSE: $res');
-      if (res['otp'] != null) debugPrint('OTP: ${res["otp"]}');
-      debugPrint('═══════════════════════════════');
-      if (res['success'] == true || res['status'] == 'success') {
-        debugPrint('OTP sent successfully to: $phone');
-        setState(() => _phoneSent = true);
-        _startResendTimer();
-      } else {
-        setState(() => _phoneError = res['message']?.toString() ?? 'Failed to send OTP');
+      debugPrint('=== LOAN OTP — Send OTP ===');
+      debugPrint('Phone: $_precheckPhone');
+
+      final res = await ApiService.sendOtp(_precheckPhone);
+
+      debugPrint('=== LOAN OTP — Send OTP RAW RESPONSE ===');
+      debugPrint(res.toString());
+      debugPrint('statusCode: ${res['statusCode']}');
+      debugPrint('success: ${res['success']}');
+      debugPrint('status: ${res['status']}');
+      debugPrint('message: ${res['message']}');
+
+      if (res['success'] != true && res['status'] != 'success') {
+        debugPrint('=== LOAN OTP — Send OTP FAILED ===');
+        throw Exception(res['message']?.toString() ?? 'Failed to send OTP');
       }
+      final data = res['data'] as Map<String, dynamic>?;
+      _requestId = (data?['request_id'] ?? data?['requestId'] ?? res['request_id'])
+              ?.toString() ??
+          '';
+
+      debugPrint('=== LOAN OTP — request_id: $_requestId ===');
+
+      // 🔑 Print the OTP itself if the backend returns it (dev/test mode only)
+      final devOtp = data?['otp'] ?? res['otp'];
+      if (devOtp != null) {
+        debugPrint('🔑🔑🔑 LOAN OTP — OTP CODE: $devOtp 🔑🔑🔑');
+      }
+
+      setState(() {
+        _phoneController.text = _precheckPhone;
+        _step = 3;
+      });
+      _startResendTimer();
     } catch (e) {
-      debugPrint('sendOtp error: $e');
-      setState(() => _phoneError = 'Failed to send OTP');
+      debugPrint('=== LOAN OTP — Send OTP EXCEPTION: $e ===');
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _onOtpDigitChanged(int index, String value) {
-    if (value.isNotEmpty && index < 5) _otpFocusNodes[index + 1].requestFocus();
-    if (value.isEmpty && index > 0)    _otpFocusNodes[index - 1].requestFocus();
-    final current = _otpControllers.map((c) => c.text).join();
-    debugPrint('OTP box[$index] = "$value" | current: "$current"');
-    setState(() => _otpError = null);
-  }
-
-  Future<void> _verifyOtp() async {
-    final otp = _otpControllers.map((c) => c.text).join();
-    debugPrint('═══════════════════════════════');
-    debugPrint('DEBUG OTP ENTERED: "$otp"');
-    debugPrint('OTP LENGTH: ${otp.length}');
-    debugPrint('═══════════════════════════════');
-    if (otp.length != 6) {
-      setState(() => _otpError = 'Enter valid 6-digit OTP');
-      return;
-    }
-    setState(() => _loading = true);
+  Future<void> _handleResendOtp() async {
+    if (!_canResend) return;
+    setState(() { _loading = true; _error = null; });
+    _startResendTimer();
     try {
-      final phone = _phoneController.text.trim();
-      final res = await ApiService.verifyOtp(phone, otp);
-      if (res['success'] == true || res['status'] == 'success') {
-        widget.onVerified(phone);
-      } else {
-        setState(() => _otpError = res['message']?.toString() ?? 'Invalid OTP. Please try again.');
+      debugPrint('=== LOAN OTP — Resend OTP — request_id: $_requestId ===');
+      final res = await ApiService.resendOtp(_requestId);
+      debugPrint('=== LOAN OTP — Resend OTP RAW RESPONSE ===');
+      debugPrint(res.toString());
+      if (res['success'] != true && res['status'] != 'success') {
+        throw Exception(res['message']?.toString() ?? 'Failed to resend OTP');
+      }
+      final data = res['data'] as Map<String, dynamic>?;
+      final newId = data?['request_id'] ?? data?['requestId'] ?? res['request_id'];
+      if (newId != null) {
+        _requestId = newId.toString();
+      }
+      final devOtp = data?['otp'] ?? res['otp'];
+      if (devOtp != null) {
+        debugPrint('🔑🔑🔑 LOAN OTP — RESENT OTP CODE: $devOtp 🔑🔑🔑');
       }
     } catch (e) {
-      setState(() => _otpError = 'Invalid OTP. Please try again.');
+      debugPrint('=== LOAN OTP — Resend OTP EXCEPTION: $e ===');
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  // ─── Step 3 — Verify OTP (ApiService.verifyOtp -> newAuthBaseUrl) ──────────
+
+  void _onOtpDigitChanged(int index, String value) {
+    if (_error != null) setState(() => _error = null);
+    if (value.isNotEmpty && index < 5) {
+      _otpFocusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      _otpFocusNodes[index - 1].requestFocus();
+    }
+
+    final otp = _otpControllers.map((c) => c.text).join();
+    if (otp.length == 6 && index == 5) {
+      _verifyOtp(otp);
+    }
+  }
+
+  Future<void> _verifyOtp(String otp) async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      debugPrint('=== LOAN OTP — Verify OTP — request_id: $_requestId, otp: $otp ===');
+      final res = await ApiService.verifyOtp(_requestId, otp);
+      debugPrint('=== LOAN OTP — Verify OTP RAW RESPONSE ===');
+      debugPrint(res.toString());
+      if (res['success'] == true || res['status'] == 'success') {
+        final data = res['data'] as Map<String, dynamic>?;
+        final sessionToken = (data?['tempToken'] ??
+                data?['accessToken'] ??
+                data?['token'] ??
+                res['tempToken'])
+            ?.toString() ??
+            '';
+        final customer = data?['user'] as Map<String, dynamic>? ??
+            data?['customer'] as Map<String, dynamic>? ??
+            _fetchedCustomer;
+        
+         // ─── ADD THIS ───────────────────────────────────────────────
+        debugPrint('=== LOAN OTP — customer object: $customer ===');
+        debugPrint('=== LOAN OTP — aadharImage: ${customer?['aadharImage']} ===');
+        debugPrint('=== LOAN OTP — aadharImageBack: ${customer?['aadharImageBack']} ===');
+        debugPrint('=== LOAN OTP — panImage: ${customer?['panImage']} ===');
+        // ────────────────────────────────────────────────────────────
+
+
+        debugPrint('=== LOAN OTP — Verify OTP SUCCESS — sessionToken: $sessionToken ===');
+        widget.onVerified(OtpVerificationResult(
+          phoneNumber: _phoneController.text.trim(),
+          aadhaarNumber: customer?['aadharMasked']?.toString()
+              ?? _aadharNumberCtrl.text.trim(),
+          panNumber: customer?['panMasked']?.toString()
+              ?? _panNumberCtrl.text.trim(),
+          sessionToken: sessionToken,
+          fullName: customer?['fullName']?.toString()
+              ?? customer?['name']?.toString(),
+          email: customer?['email']?.toString(),
+          address: customer?['address']?.toString(),
+          customerId: customer?['customerId']?.toString()
+              ?? customer?['id']?.toString(),
+          panFullName: customer?['panFullName']?.toString(),
+          isAadharVerified: customer?['isAadharVerified'] == true ||
+              customer?['isAadharVerified'] == 1 ||
+              customer?['isAadharVerified'] == '1',
+          isPanVerified: customer?['isPanVerified'] == true ||
+              customer?['isPanVerified'] == 1 ||
+              customer?['isPanVerified'] == '1',
+          employmentType: customer?['employmentType']?.toString(),
+          monthlyIncome: customer?['monthlyIncome']?.toString(),
+          companyName: customer?['companyName']?.toString(),
+          workExperience: customer?['workExperience']?.toString(),
+          dob: customer?['dob']?.toString(),
+          gender: customer?['gender']?.toString(),
+          aadharImage: customer?['aadharImage']?.toString(),
+          aadharImageBack: customer?['aadharImageBack']?.toString(),
+          panImage: customer?['panImage']?.toString(),
+        ));
+      } else {
+        debugPrint('=== LOAN OTP — Verify OTP FAILED — message: ${res['message']} ===');
+        setState(() => _error = res['message']?.toString() ?? 'Invalid OTP. Please try again.');
+        for (final c in _otpControllers) c.clear();
+        _otpFocusNodes[0].requestFocus();
+      }
+    } catch (e) {
+      debugPrint('=== LOAN OTP — Verify OTP EXCEPTION: $e ===');
+      setState(() => _error = 'Verification failed. Please try again.');
+      for (final c in _otpControllers) c.clear();
+      _otpFocusNodes[0].requestFocus();
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1016,149 +1975,450 @@ class _OtpVerificationWidgetState extends State<_OtpVerificationWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // React OTPVerification: space-y-6, "Phone Verification" title, subtitle
+    if (_step == 1 && _showUpdatePrompt) return _buildUpdatePrompt();
+    if (_step == 2) return _buildConfirmStep();
+    if (_step == 3) return _buildOtpStep();
+    return _buildFormStep();
+  }
+
+  // ─── Step 1 UI — Phone / Aadhaar / PAN form ────────────────────────────────
+
+  Widget _buildFormStep() {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Phone Verification',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kSlate900)),
+          const Text('Verification Details',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: kSlate900)),
           const SizedBox(height: 4),
-          Text('Verify your phone number to continue',
+          Text('Please verify your details',
               style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
           const SizedBox(height: 24),
 
-          // Phone input — reuses _LoanInputField style (border-2 rounded-xl focus:border-red-500)
           _ControlledInputField(
             label: 'Phone Number',
             controller: _phoneController,
-            placeholder: 'Enter your 10-digit phone number',
-            error: _phoneError,
+            placeholder: 'Enter 10-digit number',
             keyboardType: TextInputType.phone,
             maxLength: 10,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            enabled: !_phoneSent,
-            onChanged: (_) => setState(() => _phoneError = null),
+            onChanged: (_) {},
+          ),
+          const SizedBox(height: 16),
+          _ControlledInputField(
+            label: 'Aadhaar Number',
+            controller: _aadharNumberCtrl,
+            placeholder: 'Enter 12-digit Aadhaar number',
+            keyboardType: TextInputType.number,
+            maxLength: 12,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (_) {},
+          ),
+          const SizedBox(height: 16),
+          _ControlledInputField(
+            label: 'PAN Number',
+            controller: _panNumberCtrl,
+            placeholder: 'Enter PAN number',
+            maxLength: 10,
+            textCapitalization: TextCapitalization.characters,
+            onChanged: (_) {},
           ),
 
-          if (!_phoneSent) ...[
-            const SizedBox(height: 16),
-            // React: red-600 bg button, full width
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _sendOtp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kPrimary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _loading
-                    ? const SizedBox(width: 18, height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Send OTP',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, size: 16, color: kPrimary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(_error!,
+                        style: const TextStyle(fontSize: 13, color: kPrimary)),
+                  ),
+                ],
               ),
             ),
-          ],
 
-          if (_phoneSent) ...[
-            const SizedBox(height: 20),
-            const Text('Enter OTP',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kSlate700)),
-            const SizedBox(height: 12),
-            // React: 6 inputs, flex gap-2, w-12 h-12, border-2 rounded-xl
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(6, (i) {
-                return SizedBox(
-                  width: 44, height: 52,
-                  child: TextField(
-                    controller: _otpControllers[i],
-                    focusNode: _otpFocusNodes[i],
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    maxLength: 1,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      counterText: '',
-                      contentPadding: EdgeInsets.zero,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: _otpError != null ? kPrimary : kSlate200,
-                          width: 2,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: _otpError != null ? kPrimary : kSlate200,
-                          width: 2,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: kPrimary, width: 2),
-                      ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _loading ? null : _handlePhoneSubmit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: _loading
+                  ? const SizedBox(width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text('Get Verification Code',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward, size: 18),
+                      ],
                     ),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    onChanged: (v) => _onOtpDigitChanged(i, v),
-                  ),
-                );
-              }),
             ),
-            // React: AlertCircle error message
-            if (_otpError != null)
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpdatePrompt() {
+  final aadhaar = _aadharNumberCtrl.text;
+  final lastFour = aadhaar.length >= 4 ? aadhaar.substring(aadhaar.length - 4) : aadhaar;
+  return Padding(
+    padding: const EdgeInsets.all(20),
+    child: Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kSlate200),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.error_outline, color: kAmber, size: 32),
+          ),
+          const SizedBox(height: 16),
+          const Text('Phone Number Mismatch',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kSlate900)),
+          const SizedBox(height: 8),
+          Text.rich(
+            TextSpan(
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.5),
+              children: [
+                const TextSpan(text: 'The Aadhaar number '),
+                TextSpan(
+                  text: 'XXXX-XXXX-$lastFour',
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: kSlate900),
+                ),
+                const TextSpan(
+                  text: ' is already registered with another mobile number.\n\n'
+                      'Do you want to update your registered mobile number to ',
+                ),
+                TextSpan(
+                  text: '+91 ${_phoneController.text}',
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: kBlue),
+                ),
+                const TextSpan(text: '?'),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          // const SizedBox(height: 20),
+          // SizedBox(
+          //   width: double.infinity,
+          //   height: 48,
+            // Disabled to match the React reference — the "update number" action
+            // isn't wired to a backend mutation yet.
+            // child: ElevatedButton(
+            //   onPressed: null,
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: kAmber.withOpacity(0.5),
+            //     foregroundColor: Colors.white,
+            //     elevation: 0,
+            //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            //   ),
+            //   child: const Text('Yes, Update Number',
+            //       style: TextStyle(fontWeight: FontWeight.w600)),
+            // ),
+          // ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: () => setState(() => _showUpdatePrompt = false),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kSlate700,
+                side: BorderSide.none,
+                backgroundColor: kSlate100,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('No, use a different Aadhaar',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+  // ─── Step 2 UI — Confirm masked number ─────────────────────────────────────
+
+  Widget _buildConfirmStep() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: kSlate200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.shield_outlined, color: kPrimary, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('STEP 2 OF 3',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade500, letterSpacing: 0.5)),
+                      const SizedBox(height: 2),
+                      const Text('Confirm mobile number',
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: kSlate900)),
+                      const SizedBox(height: 4),
+                      Text('We\'ll send a secure verification code to the number below.',
+                          style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kSlate100,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  Text('PRIMARY CONTACT',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade500, letterSpacing: 0.5)),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.phone, size: 18, color: kSlate600),
+                      const SizedBox(width: 8),
+                      Text('+91 ${_maskPhone(_precheckPhone)}',
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kSlate900)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text('Standard SMS charges may apply',
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                ],
+              ),
+            ),
+            if (_error != null)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: 12),
                 child: Row(
                   children: [
                     const Icon(Icons.error_outline, size: 16, color: kPrimary),
                     const SizedBox(width: 4),
-                    Text(_otpError!,
-                        style: const TextStyle(fontSize: 13, color: kPrimary)),
+                    Expanded(
+                      child: Text(_error!, style: const TextStyle(fontSize: 13, color: kPrimary)),
+                    ),
                   ],
                 ),
               ),
-            // React: "Resend OTP in Xs" / "Resend OTP" link
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: _canResend
-                  ? GestureDetector(
-                      onTap: _sendOtp,
-                      child: const Text('Resend OTP',
-                          style: TextStyle(fontSize: 13, color: kBlue,
-                              fontWeight: FontWeight.w500)),
-                    )
-                  : Text('Resend OTP in ${_resendTimer}s',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
-            ),
-            // React: red-600 "Verify OTP" button
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _loading ? null : _verifyOtp,
+                onPressed: _loading ? null : _handleSendOtp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kPrimary,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: _loading
-                    ? const SizedBox(width: 18, height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Verify OTP',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          SizedBox(width: 18, height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                          SizedBox(width: 8),
+                          Text('Sending code...', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.check_circle_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text('Send OTP', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton(
+                onPressed: () => setState(() => _step = 1),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: kSlate700,
+                  side: const BorderSide(color: kSlate200),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Use a different number', style: TextStyle(fontWeight: FontWeight.w500)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: Text.rich(
+                TextSpan(
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  children: const [
+                    TextSpan(text: 'Need help? Reach our support team at '),
+                    TextSpan(
+                      text: 'support@slfintech.in',
+                      style: TextStyle(fontWeight: FontWeight.w600, color: kSlate700),
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Step 3 UI — OTP entry ──────────────────────────────────────────────────
+
+  Widget _buildOtpStep() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('OTP Verification',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kSlate900)),
+          const SizedBox(height: 8),
+          Text.rich(
+            TextSpan(
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5),
+              children: [
+                const TextSpan(text: 'Enter the 6-digit verification code sent to\n'),
+                TextSpan(
+                  text: '+91 ${_phoneController.text}',
+                  style: const TextStyle(fontWeight: FontWeight.w500, color: kSlate700),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(6, (i) {
+              return SizedBox(
+                width: 44, height: 52,
+                child: TextField(
+                  controller: _otpControllers[i],
+                  focusNode: _otpFocusNodes[i],
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  maxLength: 1,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: InputDecoration(
+                    counterText: '',
+                    contentPadding: EdgeInsets.zero,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: _error != null ? kPrimary : kSlate200, width: 2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kBlue, width: 2),
+                    ),
+                  ),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  onChanged: (v) => _onOtpDigitChanged(i, v),
+                ),
+              );
+            }),
+          ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, size: 16, color: kPrimary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(_error!, style: const TextStyle(fontSize: 13, color: kPrimary)),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 24),
+          Center(
+            child: _canResend
+                ? GestureDetector(
+                    onTap: _loading ? null : _handleResendOtp,
+                    child: _loading
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(width: 14, height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2)),
+                              const SizedBox(width: 8),
+                              Text('Sending...', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                            ],
+                          )
+                        : const Text('Resend Verification Code',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: kBlue)),
+                  )
+                : Text.rich(
+                    TextSpan(
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      children: [
+                        const TextSpan(text: 'Request new code in '),
+                        TextSpan(
+                          text: '${_resendTimer}s',
+                          style: const TextStyle(fontWeight: FontWeight.w500, color: kBlue),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
         ],
       ),
     );
@@ -1166,8 +2426,6 @@ class _OtpVerificationWidgetState extends State<_OtpVerificationWidget> {
 }
 
 // ─── Form Section ─────────────────────────────────────────────────────────────
-// React: FormSection — space-y-6, title (text-lg font-semibold text-slate-900),
-//        subtitle (text-sm text-slate-600), then children in space-y-4
 
 class _FormSection extends StatelessWidget {
   final String title;
@@ -1183,7 +2441,6 @@ class _FormSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // React: space-y-3 with space-y-1 inner
         Text(title,
             style: const TextStyle(
                 fontSize: 18, fontWeight: FontWeight.w600, color: kSlate900)),
@@ -1191,7 +2448,6 @@ class _FormSection extends StatelessWidget {
         Text(subtitle,
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
         const SizedBox(height: 24),
-        // React: space-y-4 wrapping children
         ...children.map((child) => Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: child,
@@ -1200,15 +2456,23 @@ class _FormSection extends StatelessWidget {
     );
   }
 }
+class _ClearOnBackspaceFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.length < oldValue.text.length) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+    return newValue;
+  }
+}
 
 // ─── React Input Field ────────────────────────────────────────────────────────
-// React InputField:
-//   label: text-sm font-medium text-slate-700
-//   input: w-full px-4 py-3 bg-white border-2 rounded-xl
-//          focus:border-red-500 focus:ring-4 focus:ring-red-100
-//          error → border-red-500 ring-4 ring-red-100
-//          normal → border-slate-200
-//   error row: AlertCircle w-4 h-4 + text-sm text-red-500
 
 class _LoanInputField extends StatelessWidget {
   final String label;
@@ -1237,15 +2501,12 @@ class _LoanInputField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // React: text-sm font-medium text-slate-700
         Text(label,
             style: const TextStyle(
                 fontSize: 14, fontWeight: FontWeight.w500, color: kSlate700)),
         const SizedBox(height: 8),
-        // React: relative div with gradient blur layer behind input
         Stack(
           children: [
-            // React: absolute inset-0 bg-gradient-to-r from-red-500 to-blue-500 rounded-xl blur opacity-10
             if (!hasError)
               Positioned.fill(
                 child: Container(
@@ -1256,7 +2517,6 @@ class _LoanInputField extends StatelessWidget {
                     ),
                   ),
                   margin: const EdgeInsets.all(0),
-                  // blur approximation via opacity
                 ),
               ),
             TextFormField(
@@ -1275,14 +2535,12 @@ class _LoanInputField extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 filled: true,
                 fillColor: enabled ? Colors.white : kSlate100,
-                // React: border-2 rounded-xl, error → border-red-500, normal → border-slate-200
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
                     color: hasError ? kPrimary : kSlate200, width: 2,
                   ),
                 ),
-                // React: focus:border-red-500 focus:ring-4 focus:ring-red-100
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: kPrimary, width: 2),
@@ -1301,7 +2559,6 @@ class _LoanInputField extends StatelessWidget {
             ),
           ],
         ),
-        // React: AlertCircle + text-sm text-red-500
         if (hasError)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -1322,7 +2579,6 @@ class _LoanInputField extends StatelessWidget {
 }
 
 // ─── React Controlled Input Field ─────────────────────────────────────────────
-// Same styling as _LoanInputField but accepts a TextEditingController
 
 class _ControlledInputField extends StatelessWidget {
   final String label;
@@ -1331,6 +2587,7 @@ class _ControlledInputField extends StatelessWidget {
   final String? error;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
+  final TextCapitalization textCapitalization;
   final int? maxLength;
   final bool enabled;
   final void Function(String) onChanged;
@@ -1338,6 +2595,7 @@ class _ControlledInputField extends StatelessWidget {
   const _ControlledInputField({
     Key? key, required this.label, required this.controller,
     this.placeholder = '', this.error, this.keyboardType, this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
     this.maxLength, this.enabled = true, required this.onChanged,
   }) : super(key: key);
 
@@ -1356,6 +2614,7 @@ class _ControlledInputField extends StatelessWidget {
           enabled: enabled,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
+          textCapitalization: textCapitalization,
           maxLength: maxLength,
           decoration: InputDecoration(
             hintText: placeholder,
@@ -1407,7 +2666,6 @@ class _ControlledInputField extends StatelessWidget {
 }
 
 // ─── React Date Field ─────────────────────────────────────────────────────────
-// React: InputField type="date" — same styling as InputField, tapping opens date picker
 
 class _DatePickerField extends StatelessWidget {
   final String label;
@@ -1493,12 +2751,6 @@ class _DatePickerField extends StatelessWidget {
 }
 
 // ─── React Select Field ───────────────────────────────────────────────────────
-// React: SelectFieldPopup — same border-2 rounded-xl styling as InputField
-// Tapping opens a bottom sheet modal (React's popup → Flutter bottom sheet)
-// React bottom sheet: bg-white w-full rounded-t-3xl p-6 animate-slideUp
-//   w-12 h-1 bg-gray-300 drag handle
-//   "Select {label}" title
-//   each option: w-full p-4 text-left rounded-xl hover:bg-gray-50
 
 class _SelectPopupField extends StatelessWidget {
   final String label;
@@ -1580,7 +2832,6 @@ class _SelectPopupField extends StatelessWidget {
   }
 
   void _showPicker(BuildContext context) {
-    // React: fixed bottom-0 bg-black/50 z-50 + bg-white w-full rounded-t-3xl p-6
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -1595,7 +2846,6 @@ class _SelectPopupField extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // React: w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6
                 Center(
                   child: Container(
                     width: 48, height: 4,
@@ -1605,12 +2855,10 @@ class _SelectPopupField extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // React: text-lg font-semibold
                 Text('Select $label',
                     style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.w600, color: kSlate900)),
                 const SizedBox(height: 12),
-                // React: space-y-2 options
                 ...options.map((opt) {
                   final isSelected = opt['value'] == value;
                   return InkWell(
@@ -1622,7 +2870,6 @@ class _SelectPopupField extends StatelessWidget {
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
-                      // React: hover:bg-gray-50 rounded-xl
                       decoration: BoxDecoration(
                         color: isSelected
                             ? const Color(0xFFFEF2F2)
@@ -1657,20 +2904,18 @@ class _SelectPopupField extends StatelessWidget {
 }
 
 // ─── React File Upload ────────────────────────────────────────────────────────
-// React FileUpload component:
-//   border-2 border-dashed when no file, border-slate-200 / border-red-500
-//   icon (Upload) + "Upload a file" text + "or drag and drop" + "PNG, JPG, PDF up to 5MB"
-//   When file selected: file icon + file name + remove button
 
 class _FileUploadField extends StatelessWidget {
   final String label;
   final File? value;
   final String? error;
+  final bool enabled;
   final void Function(File) onChanged;
   final VoidCallback onRemove;
 
   const _FileUploadField({
     Key? key, required this.label, this.value, this.error,
+    this.enabled = true,
     required this.onChanged, required this.onRemove,
   }) : super(key: key);
 
@@ -1680,7 +2925,7 @@ class _FileUploadField extends StatelessWidget {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        allowedExtensions: ['jpg', 'jpeg', 'png'],
       );
       if (result != null && result.files.single.path != null) {
         onChanged(File(result.files.single.path!));
@@ -1705,24 +2950,21 @@ class _FileUploadField extends StatelessWidget {
                 fontSize: 14, fontWeight: FontWeight.w500, color: kSlate700)),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: !hasFile ? () => _pickFile(context) : null,
+          onTap: (!hasFile && enabled) ? () => _pickFile(context) : null,
           child: Container(
+            width: double.infinity,
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
             decoration: BoxDecoration(
               color: Colors.white,
-              // React: border-2 border-dashed when no file
               border: Border.all(
                 color: hasError
                     ? kPrimary
                     : (hasFile ? const Color(0xFF16A34A) : kSlate200),
                 width: 2,
-                // dashed style approximated — Flutter doesn't natively support dashed border
-                // Use a CustomPaint wrapper for full dashed effect if needed
               ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: hasFile
-                // React: file selected state — icon + name + remove
                 ? Row(
                     children: [
                       const Icon(Icons.insert_drive_file_outlined,
@@ -1737,20 +2979,18 @@ class _FileUploadField extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      GestureDetector(
-                        onTap: onRemove,
-                        child: const Icon(Icons.close, size: 18, color: kPrimary),
-                      ),
+                      if (enabled)
+                        GestureDetector(
+                          onTap: onRemove,
+                          child: const Icon(Icons.close, size: 18, color: kPrimary),
+                        ),
                     ],
                   )
-                // React: upload state — SVG cloud icon + "Upload a file" + "or drag and drop"
                 : Column(
                     children: [
-                      // React: SVG path icon (cloud upload) — approximated with Icon
                       Icon(Icons.cloud_upload_outlined,
                           size: 48, color: Colors.grey.shade400),
                       const SizedBox(height: 8),
-                      // React: "Upload a file" (blue link) + " or drag and drop"
                       RichText(
                         text: TextSpan(
                           children: [
@@ -1771,8 +3011,7 @@ class _FileUploadField extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      // React: "PNG, JPG, PDF up to 10MB" (React says 10MB, Flutter validation is 5MB)
-                      Text('PNG, JPG, PDF up to 5MB',
+                      Text('PNG, JPG up to 5MB',
                           style: TextStyle(
                               fontSize: 12, color: Colors.grey.shade500)),
                     ],
@@ -1798,14 +3037,130 @@ class _FileUploadField extends StatelessWidget {
   }
 }
 
+// ─── Document Field (local upload OR remote SecureImage preview) ─────────────
+
+class _DocumentField extends StatelessWidget {
+  final String label;
+  final File? localFile;
+  final String? remoteFilename;
+  final String? error;
+  final bool enabled;
+  final void Function(File) onChanged;
+  final VoidCallback onRemove;
+
+  const _DocumentField({
+    Key? key,
+    required this.label,
+    this.localFile,
+    this.remoteFilename,
+    this.error,
+    this.enabled = true,
+    required this.onChanged,
+    required this.onRemove,
+  }) : super(key: key);
+
+  Future<void> _pickReplacement(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png'],
+      );
+      if (result != null && result.files.single.path != null) {
+        onChanged(File(result.files.single.path!));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick file: $e'), backgroundColor: kPrimary),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasRemote = localFile == null &&
+        remoteFilename != null &&
+        remoteFilename!.isNotEmpty;
+
+    if (hasRemote) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w500, color: kSlate700)),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF16A34A), width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: SecureImage(
+                      folder: 'customers',
+                      filename: remoteFilename!,
+                      width: double.infinity,
+                      height: 160,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                if (enabled)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () => _pickReplacement(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.55),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(Icons.edit, color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, size: 16, color: kPrimary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(error!,
+                        style: const TextStyle(fontSize: 13, color: kPrimary)),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
+    }
+
+    // Fallback — normal local upload field (shown once a new file is picked,
+    // either from scratch or as a replacement for the remote one above)
+    return _FileUploadField(
+      label: label,
+      value: localFile,
+      error: error,
+      enabled: enabled,
+      onChanged: onChanged,
+      onRemove: onRemove,
+    );
+  }
+}
+
 // ─── Success Screen ───────────────────────────────────────────────────────────
-// React SuccessScreen:
-//   bg-gradient-to-b from-red-50 to-blue-50 + grid + blobs
-//   green-500 w-20 h-20 rounded-full mx-auto mb-6 animate-bounce + Check icon
-//   "Congratulations!" text-3xl font-bold
-//   "Your loan application form has been submitted successfully!"
-//   "our executives will contact you soon."
-//   Auto-closes after 5 seconds
 
 class _SuccessScreen extends StatefulWidget {
   final VoidCallback onClose;
@@ -1819,30 +3174,31 @@ class _SuccessScreenState extends State<_SuccessScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
-  // late AnimationController _blobController;
   Timer? _autoCloseTimer;
+  late ConfettiController _confettiControllerLeft;
+  late ConfettiController _confettiControllerRight;
 
   @override
   void initState() {
     super.initState();
-    // React: animate-bounce
     _bounceController = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 800),
     )..repeat(reverse: true);
     _bounceAnimation = Tween<double>(begin: 0, end: -12).animate(
       CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
     );
-    // _blobController = AnimationController(
-    //   vsync: this, duration: const Duration(seconds: 20),
-    // )..repeat();
-    // React: auto-close after 5 seconds
+    _confettiControllerLeft = ConfettiController(duration: const Duration(seconds: 2));
+    _confettiControllerRight = ConfettiController(duration: const Duration(seconds: 2));
+    _confettiControllerLeft.play();
+    _confettiControllerRight.play();
     _autoCloseTimer = Timer(const Duration(seconds: 5), widget.onClose);
   }
 
   @override
   void dispose() {
     _bounceController.dispose();
-    // _blobController.dispose();
+    _confettiControllerLeft.dispose();
+    _confettiControllerRight.dispose();
     _autoCloseTimer?.cancel();
     super.dispose();
   }
@@ -1852,7 +3208,6 @@ class _SuccessScreenState extends State<_SuccessScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // React: bg-gradient-to-b from-red-50 to-blue-50
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -1863,39 +3218,6 @@ class _SuccessScreenState extends State<_SuccessScreen>
             ),
           ),
           CustomPaint(painter: _GridPainter(), child: const SizedBox.expand()),
-          // Blobs
-          // AnimatedBuilder(
-          //   animation: _blobController,
-          //   builder: (_, __) {
-          //     final t = _blobController.value * 2 * 3.14159;
-          //     return Positioned(
-          //       right: -160 + 20 * (0.5 - 0.5 * (t * 0.7).clamp(-1.0, 1.0)),
-          //       top:   80  - 50 * (0.5 - 0.5 * (t * 0.5).clamp(-1.0, 1.0)),
-          //       child: Container(width: 384, height: 384,
-          //         decoration: BoxDecoration(
-          //           color: const Color(0xFFFEE2E2).withOpacity(0.3),
-          //           shape: BoxShape.circle,
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
-          // AnimatedBuilder(
-          //   animation: _blobController,
-          //   builder: (_, __) {
-          //     final t = _blobController.value * 2 * 3.14159 + 2.0;
-          //     return Positioned(
-          //       left:   -160 - 20 * (0.5 - 0.5 * (t * 0.7).clamp(-1.0, 1.0)),
-          //       bottom: 80  + 50 * (0.5 - 0.5 * (t * 0.5).clamp(-1.0, 1.0)),
-          //       child: Container(width: 384, height: 384,
-          //         decoration: BoxDecoration(
-          //           color: const Color(0xFFDBEAFE).withOpacity(0.3),
-          //           shape: BoxShape.circle,
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
           SafeArea(
             child: Center(
               child: Padding(
@@ -1903,7 +3225,6 @@ class _SuccessScreenState extends State<_SuccessScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // React: bg-green-500 w-20 h-20 rounded-full animate-bounce + Check
                     AnimatedBuilder(
                       animation: _bounceAnimation,
                       builder: (_, child) => Transform.translate(
@@ -1920,13 +3241,11 @@ class _SuccessScreenState extends State<_SuccessScreen>
                       ),
                     ),
                     const SizedBox(height: 24),
-                    // React: text-3xl font-bold
                     const Text('Congratulations!',
                         style: TextStyle(
                             fontSize: 28, fontWeight: FontWeight.bold,
                             color: kSlate900)),
                     const SizedBox(height: 12),
-                    // React: text-gray-600 animate-fadeIn
                     Text(
                       'Your loan application form has been submitted successfully!',
                       textAlign: TextAlign.center,
@@ -1943,6 +3262,69 @@ class _SuccessScreenState extends State<_SuccessScreen>
               ),
             ),
           ),
+        Positioned(
+            left: 0,
+            top: MediaQuery.of(context).size.height * 0.4,
+            child: ConfettiWidget(
+              confettiController: _confettiControllerLeft,
+              blastDirection: 0,
+              blastDirectionality: BlastDirectionality.directional,
+              numberOfParticles: 22,
+              gravity: 0.15,
+              emissionFrequency: 0.02,
+              minimumSize: const Size(3, 3),
+              maximumSize: const Size(6, 6),
+              colors: const [
+                Color(0xFF93C5FD),
+                Color(0xFF86EFAC),
+                Color(0xFFFCD34D),
+                Color(0xFFFCA5A5),
+                Color(0xFFC4B5FD),
+                Color(0xFFFDBA74),
+                Color(0xFFA5F3FC),
+              ],
+              createParticlePath: (size) {
+                final path = Path();
+                path.addOval(Rect.fromCircle(
+                  center: Offset(size.width / 2, size.height / 2),
+                  radius: size.width / 2,
+                ));
+                return path;
+              },
+            ),
+          ),
+          // Right cannon
+          Positioned(
+            right: 0,
+            top: MediaQuery.of(context).size.height * 0.4,
+            child: ConfettiWidget(
+              confettiController: _confettiControllerRight,
+              blastDirection: pi,
+              blastDirectionality: BlastDirectionality.directional,
+              numberOfParticles: 22,
+              gravity: 0.15,
+              emissionFrequency: 0.02,
+              minimumSize: const Size(3, 3),
+              maximumSize: const Size(6, 6),
+              colors: const [
+                Color(0xFF93C5FD),
+                Color(0xFF86EFAC),
+                Color(0xFFFCD34D),
+                Color(0xFFFCA5A5),
+                Color(0xFFC4B5FD),
+                Color(0xFFFDBA74),
+                Color(0xFFA5F3FC),
+              ],
+              createParticlePath: (size) {
+                final path = Path();
+                path.addOval(Rect.fromCircle(
+                  center: Offset(size.width / 2, size.height / 2),
+                  radius: size.width / 2,
+                ));
+                return path;
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -1950,9 +3332,6 @@ class _SuccessScreenState extends State<_SuccessScreen>
 }
 
 // ─── Grid Painter ─────────────────────────────────────────────────────────────
-// React: bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),
-//           linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)]
-//        bg-[size:32px_32px]
 
 class _GridPainter extends CustomPainter {
   @override

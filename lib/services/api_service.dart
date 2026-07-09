@@ -14,15 +14,15 @@ class ApiConstants {
   //     'https://shubhlabhpatsanstha.org/backend/otp';
   // static const String razorpayKey = 'rzp_test_R7xzyaqsmw9C9O';
     static const String userBaseUrl =
-      'http://192.168.1.11/backend/userss';
+      'http://192.168.1.18/backend/userss';
     static const String adminBaseUrl =
-        'http://192.168.1.11/backend/admin';
+        'http://192.168.1.18/backend/admin';
     static const String otpBaseUrl =
-        'http://192.168.1.11/backend/otp';
+        'http://192.168.1.18/backend/otp';
     static const String servicesBaseUrl =
-        'http://192.168.1.11/backend/services';
+        'http://192.168.1.18/backend/services';
     static const String razorpayKey = 'rzp_test_R7xzyaqsmw9C9O';
-    static const String newAuthBaseUrl = 'http://192.168.1.11:3000';
+    static const String newAuthBaseUrl = 'http://192.168.1.18:3000';
 
 }
 
@@ -44,7 +44,32 @@ static Future<Map<String, dynamic>> sendOtp(String phoneNumber) async {
   return data;
 }
 
-// Replace existing verifyOtp:
+static Future<Map<String, dynamic>> checkCustomerIdentity({
+  required String phone,
+  required String aadhaar,
+  String? pan,
+}) async {
+  final token = await AuthService.getAccessToken();
+  debugPrint('=== CHECK CUSTOMER IDENTITY ===');
+  debugPrint('token: $token');
+
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/customers/check'),
+    headers: {
+      ..._headers,
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({
+      'phone': phone,
+      'aadhaar': aadhaar,
+      if (pan != null && pan.trim().isNotEmpty) 'pan': pan.trim(),
+    }),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
 static Future<Map<String, dynamic>> verifyOtp(
     String requestId, String otp) async {
   final response = await http.post(
@@ -720,4 +745,219 @@ static Future<Map<String, dynamic>> getOperators({String category = 'Prepaid'}) 
     );
     return jsonDecode(response.body);
   }
+  // Register customer (multipart)
+static MediaType _imageMediaType(String filePath) {
+  String ext = filePath.split('.').last.toLowerCase();
+  if (ext.contains('(')) ext = ext.split('(').first; // guard against odd cached names
+  const mimeMap = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'webp': 'image/webp',
+    'gif': 'image/gif',
+  };
+  return MediaType.parse(mimeMap[ext] ?? 'image/jpeg');
+}
+
+static Future<Map<String, dynamic>> registerCustomer(
+    Map<String, dynamic> fields, {
+    String? aadharImagePath,
+    String? aadharImageBackPath,
+    String? panImagePath,
+  }) async {
+  final token = await AuthService.getAccessToken();
+  final request = http.MultipartRequest(
+    'POST',
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/customers/register'),
+  );
+  if (token != null && token.isNotEmpty) {
+    request.headers['Authorization'] = 'Bearer $token';
+  }
+  fields.forEach((key, value) {
+    if (value != null) request.fields[key] = value.toString();
+  });
+  if (aadharImagePath != null) {
+    request.files.add(await http.MultipartFile.fromPath(
+      'aadharImage',
+      aadharImagePath,
+      contentType: _imageMediaType(aadharImagePath),
+    ));
+  }
+  if (aadharImageBackPath != null) {
+    request.files.add(await http.MultipartFile.fromPath(
+      'aadharImageBack',
+      aadharImageBackPath,
+      contentType: _imageMediaType(aadharImageBackPath),
+    ));
+  }
+  if (panImagePath != null) {
+    request.files.add(await http.MultipartFile.fromPath(
+      'panImage',
+      panImagePath,
+      contentType: _imageMediaType(panImagePath),
+    ));
+  }
+  final streamed = await request.send();
+  final response = await http.Response.fromStream(streamed);
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+// Update employment details
+static Future<Map<String, dynamic>> updateEmployment(
+    String customerId, Map<String, dynamic> employmentData) async {
+  final token = await AuthService.getAccessToken();
+  final response = await http.patch(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/customers/$customerId/employment'),
+    headers: {
+      ..._headers,
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode(employmentData),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+// Initiate DigiLocker
+// Initiate DigiLocker
+static Future<Map<String, dynamic>> initiateDigilocker(
+    String customerId, {
+    String platform = 'mobile',
+  }) async {
+  final token = await AuthService.getAccessToken();
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/verification/digilocker/initiate'),
+    headers: {
+      ..._headers,
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({'customer_id': customerId, 'platform': platform}),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+// Digilocker callback — confirms e-KYC result with the backend
+static Future<Map<String, dynamic>> callbackDigilocker({
+  required String encdata,
+  String? refid,
+  String? sessionToken,
+}) async {
+  final token = await AuthService.getAccessToken();
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/verification/digilocker/callback'),
+    headers: {
+      ..._headers,
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({
+      'encdata': encdata,
+      if (refid != null && refid.isNotEmpty) 'refid': refid,
+      if (sessionToken != null && sessionToken.isNotEmpty) 'session_token': sessionToken,
+    }),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+// Verify PAN (multipart)
+static Future<Map<String, dynamic>> verifyPan({
+  required String customerId,
+  required String panNumber,
+  required String panFullName,
+  String? panImagePath,
+}) async {
+  final token = await AuthService.getAccessToken();
+  final request = http.MultipartRequest(
+    'POST',
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/verification/pan_verify'),
+  );
+  if (token != null && token.isNotEmpty) {
+    request.headers['Authorization'] = 'Bearer $token';
+  }
+  request.fields['customerId'] = customerId;
+  request.fields['panNumber'] = panNumber;
+  request.fields['panFullName'] = panFullName;
+  if (panImagePath != null && panImagePath.isNotEmpty) {
+    request.files.add(await http.MultipartFile.fromPath(
+      'panImage',
+      panImagePath,
+      contentType: _imageMediaType(panImagePath),
+    ));
+  }
+  final streamed = await request.send();
+  final response = await http.Response.fromStream(streamed);
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+// Submit loan application (multipart)
+static Future<Map<String, dynamic>> submitLoanApplication(
+    Map<String, dynamic> fields) async {
+  final token = await AuthService.getAccessToken();
+  final request = http.MultipartRequest(
+    'POST',
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/loans/'),
+  );
+  if (token != null && token.isNotEmpty) {
+    request.headers['Authorization'] = 'Bearer $token';
+  }
+  fields.forEach((key, value) {
+    if (value != null) request.fields[key] = value.toString();
+  });
+  final streamed = await request.send();
+  final response = await http.Response.fromStream(streamed);
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+// Get active shops
+static Future<Map<String, dynamic>> getActiveShops() async {
+  final token = await AuthService.getAccessToken();
+  final response = await http.get(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/data/shops/active-shops'),
+    headers: {
+      ..._headers,
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    },
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+// Get loan categories
+static Future<Map<String, dynamic>> getLoanCategories() async {
+  final token = await AuthService.getAccessToken();
+  final response = await http.get(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/data/loan-categories'),
+    headers: {
+      ..._headers,
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    },
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
+
+// Get branches
+static Future<Map<String, dynamic>> getBranches() async {
+  final token = await AuthService.getAccessToken();
+  final response = await http.get(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/data/branches'),
+    headers: {
+      ..._headers,
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    },
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
 }

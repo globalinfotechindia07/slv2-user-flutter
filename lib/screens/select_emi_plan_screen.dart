@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:confetti/confetti.dart';
 import '../screens/home_screen.dart'; 
 
+
 // ── SelectEmiPlan Screen — matches React SelectEmiPlan.jsx exactly ────────────
 // 3 steps:
 //   0 — Select EMI Plan (generated from loanDetails min/max tenure)

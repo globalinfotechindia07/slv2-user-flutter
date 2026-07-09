@@ -193,9 +193,12 @@ void _handleSelectEMIPlan(Map<String, dynamic> loan) {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
+    return RefreshIndicator(
+      onRefresh: _fetchLoanApplications,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title — mirrors <h1>My Accounts</h1>
@@ -245,6 +248,7 @@ void _handleSelectEMIPlan(Map<String, dynamic> loan) {
           // Security Banner — mirrors <SecurityBanner />
           const SecurityBanner(),
         ],
+        ),
       ),
     );
   }
