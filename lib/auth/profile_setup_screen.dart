@@ -20,19 +20,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   final _emailController = TextEditingController();
   final _dobController = TextEditingController();
   final _addressController = TextEditingController();
-  // final _aadhaarController = TextEditingController();
-  // [ADDED] PAN number controller — optional field matching React's panNumber
-  // final _panController = TextEditingController();
   DateTime? _selectedDob;
   String? _emailError; 
   String? _selectedGender;
   bool _loading = false;
-  // bool _emailVerified = false;
-  // bool _aadhaarVerified = false;
-  // bool _emailOtpSent = false;
-  // bool _aadhaarOtpSent = false;
-  // bool _sendingEmailOtp = false;
-  // bool _sendingAadhaarOtp = false;
 
   // Fade-up animation
   late final AnimationController _fadeCtrl = AnimationController(
@@ -52,9 +43,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     _emailController.dispose();
     _dobController.dispose();
     _addressController.dispose();
-    // _aadhaarController.dispose();
-    // [ADDED] dispose PAN controller
-    // _panController.dispose();
     _fadeCtrl.dispose();
     super.dispose();
   }
@@ -192,9 +180,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     );
   }
 
-  // REPLACE the entire _submit method with:
 Future<void> _submit() async {
-  // Clear previous email error
   setState(() => _emailError = null);
 
   if (!_formKey.currentState!.validate()) return;
@@ -255,11 +241,9 @@ Future<void> _submit() async {
         );
       }
     } else if (statusCode == 409) {
-      // Duplicate email — highlight email field
       setState(() => _emailError = result['error'] as String? ??
           'This email is already registered with another account.');
     } else if (statusCode == 401) {
-      // Session expired — send back to phone entry
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Session expired. Please verify OTP again.')),
@@ -267,7 +251,6 @@ Future<void> _submit() async {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } else {
-      // 400 or other errors
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['message'] ?? 'Failed to set up profile')),
       );
@@ -286,7 +269,6 @@ Future<void> _submit() async {
     return Scaffold(
       body: Stack(
         children: [
-          // Background gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -300,8 +282,6 @@ Future<void> _submit() async {
               ),
             ),
           ),
-
-          // Grid pattern
           Positioned.fill(child: CustomPaint(painter: _GridPainter())),
 
           // Main layout
@@ -378,8 +358,6 @@ Future<void> _submit() async {
                     ],
                   ),
                 ),
-
-                // Scrollable form
                 Expanded(
                   child: AnimatedBuilder(
                     animation: _fadeCtrl,
@@ -477,8 +455,7 @@ Future<void> _submit() async {
                             ),
                             const SizedBox(height: 14),
 
-                            // [ADDED] Phone number — read-only pre-filled display
-                            // Mirrors React's phoneNumber field (pre-filled, not editable)
+                            //Phone number — read-only pre-filled display
                             _buildField(
                               controller: TextEditingController(
                                   text: '+91 ${widget.phone}'),

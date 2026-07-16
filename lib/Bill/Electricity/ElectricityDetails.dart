@@ -17,7 +17,7 @@ class ElectricityDetailsArgs {
 }
 
 // ─────────────────────────────────────────────
-// InputField — mirrors React's InputField component
+// InputField 
 // ─────────────────────────────────────────────
 
 class InputField extends StatelessWidget {
@@ -113,8 +113,7 @@ class InputField extends StatelessWidget {
           ),
         ],
 
-        // Blue hint text — mirrors:
-        // <div className="text-xs text-blue-600 mb-2">Please enter your valid {label}.</div>
+        // Blue hint text 
         const SizedBox(height: 4),
         Text(
           'Please enter your valid $label.',
@@ -148,7 +147,6 @@ class _ElectricityDetailsState extends State<ElectricityDetails> {
   Map<String, String> _errors = {};
 
   // ── Controllers — one per dynamic field ─────────────────────────────────
-  // mirrors: initialFormData built from operatorData
   late final TextEditingController _mainCtrl;
   TextEditingController? _ad1Ctrl;
   TextEditingController? _ad2Ctrl;
@@ -162,7 +160,7 @@ class _ElectricityDetailsState extends State<ElectricityDetails> {
   @override
   void initState() {
     super.initState();
-    // Build controllers dynamically — mirrors initialFormData logic
+    // Build controllers dynamically
     _mainCtrl = TextEditingController();
     if (_opData['ad1_name'] != null) _ad1Ctrl = TextEditingController();
     if (_opData['ad2_name'] != null) _ad2Ctrl = TextEditingController();
@@ -177,17 +175,11 @@ class _ElectricityDetailsState extends State<ElectricityDetails> {
     _ad3Ctrl?.dispose();
     super.dispose();
   }
-
-  // ── handleInputChange — clears error for the field on change ─────────────
-
   void _handleChange(String fieldKey, String value) {
     if (_errors.containsKey(fieldKey)) {
       setState(() => _errors = {..._errors}..remove(fieldKey));
     }
   }
-
-  // ── validateForm — mirrors React validateForm ────────────────────────────
-
   bool _validateForm() {
     final newErrors = <String, String>{};
 
@@ -254,12 +246,8 @@ class _ElectricityDetailsState extends State<ElectricityDetails> {
     return newErrors.isEmpty;
   }
 
-  // ── handleContinue — mirrors React handleContinue ────────────────────────
-
   void _handleContinue() {
     if (!_validateForm()) return;
-
-    // Build formData map — mirrors React's formData state
     final formData = <String, String>{
       'main': _mainCtrl.text.trim(),
       if (_ad1Ctrl != null) 'ad1': _ad1Ctrl!.text.trim(),

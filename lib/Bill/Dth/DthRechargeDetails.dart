@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 
 // ─────────────────────────────────────────────
-// Reusable InputField widget  (mirrors React's InputField component)
+// Reusable InputField widget 
 // ─────────────────────────────────────────────
 class InputField extends StatelessWidget {
   final String label;
@@ -106,7 +106,7 @@ class InputField extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// FAQ Sidebar  (mirrors React's FAQSidebar component)
+// FAQ Sidebar  
 // ─────────────────────────────────────────────
 class FAQSidebar extends StatelessWidget {
   final bool isOpen;
@@ -303,7 +303,7 @@ class _FAQItemState extends State<_FAQItem> {
 // DthRechargeDetails Screen  (main component)
 // ─────────────────────────────────────────────
 
-// Route arguments model – mirrors React's location.state
+// Route arguments model
 class DthRechargeDetailsArgs {
   final String operatorName;
   final String operatorId;
@@ -437,8 +437,6 @@ class _DthRechargeDetailsState extends State<DthRechargeDetails> {
             ),
           ),
         ),
-
-        // ── FAQ Sidebar overlay ──
         if (_isFAQOpen)
           Positioned.fill(
             child: FAQSidebar(
@@ -450,8 +448,6 @@ class _DthRechargeDetailsState extends State<DthRechargeDetails> {
       ],
     );
   }
-
-  // ── Header widget ──
   Widget _buildHeader() {
     return Container(
       decoration: BoxDecoration(

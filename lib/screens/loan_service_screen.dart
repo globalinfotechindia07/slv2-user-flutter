@@ -1670,7 +1670,6 @@ class OtpVerificationResult {
   });
 }
 
-// ─── OTP Verification Widget (3-step flow mirroring React OTPVerification) ────
 // Step 1: Phone + Aadhaar + PAN form (client-side validation only — your
 //         current backend has no identity-precheck endpoint, so this step
 //         just collects the fields and moves on)
@@ -2795,6 +2794,7 @@ class _SelectPopupField extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
@@ -2802,13 +2802,18 @@ class _SelectPopupField extends StatelessWidget {
                     _displayLabel,
                     style: TextStyle(
                       fontSize: 14,
+                      height: 1.4,
                       color: value.isEmpty ? Colors.grey.shade400 : kSlate900,
                     ),
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                   ),
                 ),
-                Icon(Icons.keyboard_arrow_down_rounded,
-                    size: 20, color: Colors.grey.shade500),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 20, color: Colors.grey.shade500),
+                ),
               ],
             ),
           ),
@@ -2877,18 +2882,23 @@ class _SelectPopupField extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(opt['label'] ?? '',
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
-                                  color: isSelected ? kPrimary : kSlate900)),
-                          if (isSelected)
+                          Expanded(
+                            child: Text(opt['label'] ?? '',
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: isSelected ? kPrimary : kSlate900)),
+                          ),
+                          if (isSelected) ...[
+                            const SizedBox(width: 8),
                             const Icon(Icons.check_circle,
                                 color: kPrimary, size: 20),
+                          ],
                         ],
                       ),
                     ),

@@ -23,8 +23,6 @@ class TransactionModel {
     required this.time,
     required this.status,
   });
-
-  /// Mirrors React's formattedTransactions map()
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
     final datetimeStr = json['transaction_datetime']?.toString() ?? '';
     final parts = datetimeStr.split(' ');
@@ -41,8 +39,6 @@ class TransactionModel {
       status: json['status']?.toString() ?? 'Pending',
     );
   }
-
-  /// Mirrors React's toLocaleTimeString with hour12: true
   static String _formatTime(String timeStr) {
     try {
       final parts = timeStr.split(':');
@@ -72,7 +68,6 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  // Mirrors React: useState(null), useState(false), useState([]), useState(true), useState(null)
   String? _activeFilter;
   bool _showFilters = false;
   List<TransactionModel> _transactions = [];
@@ -84,8 +79,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     super.initState();
     _fetchTransactions();
   }
-
-  // Mirrors React's fetchTransactions inside useEffect
   Future<void> _fetchTransactions() async {
     try {
       setState(() {
@@ -112,7 +105,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
-  // Mirrors React's filteredTransactions filter()
   List<TransactionModel> get _filteredTransactions {
     if (_activeFilter == null) return _transactions;
     if (_activeFilter == 'Success' || _activeFilter == 'Failed') {
@@ -120,8 +112,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
     return _transactions.where((t) => t.type == _activeFilter).toList();
   }
-
-  // Mirrors React's groupedTransactions reduce()
   Map<String, List<TransactionModel>> get _groupedTransactions {
     final groups = <String, List<TransactionModel>>{};
     for (final t in _filteredTransactions) {
@@ -156,7 +146,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               const SizedBox(height: 16),
               _buildHeader(),
               const SizedBox(height: 16),
-              // Animated filter panel — mirrors the max-h transition in React
               AnimatedSize(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
@@ -204,7 +193,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ],
         ),
-        // Filter toggle button — mirrors the filter icon button in React
         GestureDetector(
           onTap: () => setState(() => _showFilters = !_showFilters),
           child: AnimatedContainer(
@@ -239,7 +227,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   // ─── Body ──────────────────────────────────────────────────────────────────
 
   Widget _buildBody() {
-    // Loading state — mirrors the animate-spin div in React
     if (_loading) {
       return const Center(
         child: CircularProgressIndicator(
@@ -270,7 +257,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Date group header — mirrors the date label + hr line
             _DateHeader(date: date),
             const SizedBox(height: 8),
             ...txns.map((t) => Padding(
@@ -285,8 +271,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 }
 
 // ─── Transaction Filter ───────────────────────────────────────────────────────
-/// Mirrors React's <TransactionFilter> component
-
 class _TransactionFilter extends StatelessWidget {
   final String? activeFilter;
   final ValueChanged<String?> onFilterChanged;
@@ -375,8 +359,6 @@ class _TransactionFilter extends StatelessWidget {
 }
 
 // ─── Transaction Card ─────────────────────────────────────────────────────────
-/// Mirrors React's <TransactionCard> component with expand/collapse
-
 class _TransactionCard extends StatefulWidget {
   final TransactionModel transaction;
 
@@ -387,7 +369,6 @@ class _TransactionCard extends StatefulWidget {
 }
 
 class _TransactionCardState extends State<_TransactionCard> {
-  // Mirrors React: const [expanded, setExpanded] = useState(false)
   bool _expanded = false;
 
   String _formatCardDate(String dateStr) {
@@ -422,7 +403,6 @@ class _TransactionCardState extends State<_TransactionCard> {
       ),
       child: Column(
         children: [
-          // Main row — mirrors the clickable top section
           GestureDetector(
             onTap: () => setState(() => _expanded = !_expanded),
             behavior: HitTestBehavior.opaque,
@@ -520,8 +500,6 @@ class _TransactionCardState extends State<_TransactionCard> {
               ),
             ),
           ),
-
-          // Expanded details — mirrors the max-h animated div in React
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -615,8 +593,6 @@ class _DetailCell extends StatelessWidget {
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
-/// Mirrors React's <StatusBadge> component
-
 class _StatusBadge extends StatelessWidget {
   final String status;
   const _StatusBadge({Key? key, required this.status}) : super(key: key);
@@ -658,8 +634,6 @@ class _StatusBadge extends StatelessWidget {
 }
 
 // ─── Type Badge ───────────────────────────────────────────────────────────────
-/// Mirrors React's <TypeBadge> component
-
 class _TypeBadge extends StatelessWidget {
   final String type;
   const _TypeBadge({Key? key, required this.type}) : super(key: key);
@@ -691,8 +665,6 @@ class _TypeBadge extends StatelessWidget {
 }
 
 // ─── Date Header ─────────────────────────────────────────────────────────────
-/// Mirrors React's date group label + gradient hr line
-
 class _DateHeader extends StatelessWidget {
   final String date;
   const _DateHeader({Key? key, required this.date}) : super(key: key);
@@ -726,8 +698,6 @@ class _DateHeader extends StatelessWidget {
 }
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
-/// Mirrors React's empty state with Wallet icon
-
 class _EmptyState extends StatelessWidget {
   final String? activeFilter;
   const _EmptyState({Key? key, this.activeFilter}) : super(key: key);
@@ -777,8 +747,6 @@ class _EmptyState extends StatelessWidget {
 }
 
 // ─── Error State ──────────────────────────────────────────────────────────────
-/// Mirrors React's error state with retry button
-
 class _ErrorState extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;

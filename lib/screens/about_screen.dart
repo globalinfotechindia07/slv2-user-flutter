@@ -57,7 +57,6 @@ const List<_LegalSection> _privacyContent = [
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 class AboutScreen extends StatefulWidget {
-  /// Optional logo asset path — mirrors React's {logo} prop
   final String? logoAsset;
 
   const AboutScreen({Key? key, this.logoAsset}) : super(key: key);
@@ -67,11 +66,8 @@ class AboutScreen extends StatefulWidget {
 }
 
 class _AboutScreenState extends State<AboutScreen> {
-  // Mirrors React: useState(false), useState('terms')
   bool _showLegal = false;
   String _activeTab = 'terms';
-
-  // Mirrors React's handleBack
   void _handleBack() {
     if (_showLegal) {
       setState(() => _showLegal = false);
@@ -156,7 +152,6 @@ class _AboutScreenState extends State<AboutScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Back button — mirrors handleBack logic
                 GestureDetector(
                   onTap: _handleBack,
                   child: Row(
@@ -175,7 +170,6 @@ class _AboutScreenState extends State<AboutScreen> {
                     ],
                   ),
                 ),
-                // Title — mirrors conditional title
                 Text(
                   _showLegal ? 'Legal Information' : 'About Shubh Labh',
                   style: const TextStyle(
@@ -188,8 +182,6 @@ class _AboutScreenState extends State<AboutScreen> {
               ],
             ),
           ),
-
-          // Tab bar — mirrors the showLegal tab row
           if (_showLegal)
             Container(
               decoration: BoxDecoration(
@@ -262,8 +254,6 @@ class _TabButton extends StatelessWidget {
 }
 
 // ─── About Content ────────────────────────────────────────────────────────────
-/// Mirrors React's !showLegal branch
-
 class _AboutContent extends StatelessWidget {
   final String? logoAsset;
   final VoidCallback onShowTerms;
@@ -433,8 +423,6 @@ class _LegalNavButton extends StatelessWidget {
 }
 
 // ─── Legal Content ────────────────────────────────────────────────────────────
-/// Mirrors React's showLegal branch with terms/privacy sections
-
 class _LegalContent extends StatelessWidget {
   final String activeTab;
 

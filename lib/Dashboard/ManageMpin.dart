@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
-import '../screens/Forgot_mpin_screen.dart';
+import '../screens/forgot_mpin_screen.dart';
 import '../../services/auth_service.dart';
 
 // ─── ManageMPIN Screen ─────────────────────────────────────────────────────────

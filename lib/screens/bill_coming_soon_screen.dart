@@ -27,7 +27,6 @@ class BillComingSoonScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Clock icon — mirrors <Clock className="w-16 h-16 text-blue-600" />
                 const Icon(
                   Icons.access_time_rounded,
                   size: 64,
@@ -57,8 +56,6 @@ class BillComingSoonScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Notification banner — mirrors the bg-blue-50 div
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -96,8 +93,6 @@ class BillComingSoonScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Progress bar — mirrors h-2 bg-gray-200 with w-3/4 blue fill
                 Column(
                   children: [
                     ClipRRect(
@@ -110,7 +105,7 @@ class BillComingSoonScreen extends StatelessWidget {
                             color: const Color(0xFFE5E7EB),
                           ),
                           FractionallySizedBox(
-                            widthFactor: 0.75, // mirrors w-3/4
+                            widthFactor: 0.75,
                             child: Container(
                               height: 8,
                               decoration: BoxDecoration(

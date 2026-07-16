@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../screens/home_screen.dart';
-import '../screens/Forgot_mpin_screen.dart';
+import '../screens/forgot_mpin_screen.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,36 +56,7 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
       Tween<double>(begin: 20, end: 0).animate(
     CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut),
   );
-
-  // // ── Blob animation — animate-blob 20s infinite ───────────────────────────
-  // late final AnimationController _blobCtrl = AnimationController(
-  //   vsync: this,
-  //   duration: const Duration(seconds: 20),
-  // )..repeat();
-
-  // Piecewise keyframes matching @keyframes blob exactly:
-  // 0%→(0,0)s1  25%→(20,-50)s1.1  50%→(-20,20)s0.9  75%→(50,50)s0.95  100%→(0,0)s1
-  // static Offset _blobOffset(double t) {
-  //   const List<Offset> positions = [
-  //     Offset(0, 0),
-  //     Offset(20, -50),
-  //     Offset(-20, 20),
-  //     Offset(50, 50),
-  //     Offset(0, 0),
-  //   ];
-  //   final seg = (t * 4).floor().clamp(0, 3);
-  //   final lt = (t * 4) - seg;
-  //   return Offset.lerp(positions[seg], positions[seg + 1], lt)!;
-  // }
-
-  // static double _blobScale(double t) {
-  //   const List<double> scales = [1.0, 1.1, 0.9, 0.95, 1.0];
-  //   final seg = (t * 4).floor().clamp(0, 3);
-  //   final lt = (t * 4) - seg;
-  //   return scales[seg] + (scales[seg + 1] - scales[seg]) * lt;
-  // }
-
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -106,8 +77,6 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
     for (final f in _focusNodes) f.dispose();
     super.dispose();
   }
-
-  // ── Input handler — mirrors React's handleMPINChange ──────────────────────
   void _onChanged(String val, int idx) {
     setState(() => _error = '');
 
@@ -131,7 +100,6 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
     }
   }
 
-  // ── Backspace — mirrors React's handleKeyDown ─────────────────────────────
   void _onBackspace(int idx) {
     if (_controllers[idx].text.isEmpty && idx > 0) {
       _controllers[idx - 1].clear();
@@ -139,7 +107,6 @@ class _MpinScreenState extends State<MpinScreen> with TickerProviderStateMixin {
     }
   }
 
-  // ── Validate MPIN — mirrors React's validateMPIN ──────────────────────────
   Future<void> _validateMpin(List<String> mpinArray) async {
   setState(() { _loading = true; _error = ''; });
 
@@ -217,7 +184,6 @@ void _triggerError(String message) {
   });
 }
 
-  // ── Forgot MPIN — mirrors React's onForgotMPIN prop ──────────────────────
   void _forgotMpin() {
     if (widget.onForgotMPIN != null) {
       widget.onForgotMPIN!();
@@ -370,7 +336,6 @@ void _triggerError(String message) {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              // <span class="text-red-600">Shubh</span> <span class="text-blue-600">Labh</span>
                               const Text(
                                 'Shubh',
                                 style: TextStyle(
@@ -554,7 +519,6 @@ void _triggerError(String message) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  _ForgotMpinButton
-//  Mirrors: hover:text-blue-800 + focus:ring-2 focus:ring-blue-200 rounded-md
 // ─────────────────────────────────────────────────────────────────────────────
 class _ForgotMpinButton extends StatefulWidget {
   final VoidCallback onTap;

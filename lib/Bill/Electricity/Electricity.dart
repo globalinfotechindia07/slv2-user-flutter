@@ -8,7 +8,7 @@ class ElectricityOperatorModel {
   final String id;
   final String name;
   final String category;
-  final Map<String, dynamic> raw; // full operator data → mirrors operatorData
+  final Map<String, dynamic> raw; 
 
   ElectricityOperatorModel({
     required this.id,
@@ -40,7 +40,6 @@ class _OperatorColors {
   });
 }
 
-// 10-entry palette matching the React Tailwind classes
 const List<_OperatorColors> _colorPalette = [
   _OperatorColors(bg: Color(0xFFDBEAFE), fg: Color(0xFF1D4ED8), border: Color(0xFFBFDBFE)), // blue
   _OperatorColors(bg: Color(0xFFFFEDD5), fg: Color(0xFFC2410C), border: Color(0xFFFED7AA)), // orange
@@ -53,8 +52,6 @@ const List<_OperatorColors> _colorPalette = [
   _OperatorColors(bg: Color(0xFFF1F5F9), fg: Color(0xFF475569), border: Color(0xFFE2E8F0)), // gray
   _OperatorColors(bg: Color(0xFFCCFBF1), fg: Color(0xFF0F766E), border: Color(0xFF99F6E4)), // teal
 ];
-
-// ── getOperatorColor — mirrors JS hash function ───────────────────────────────
 
 _OperatorColors _getOperatorColor(String name) {
   int hash = 0;
@@ -95,12 +92,9 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     super.dispose();
   }
 
-  // ── fetchOperators — mirrors useEffect API call ──────────────────────────
-
   Future<void> _fetchOperators() async {
     try {
       final data = await ApiService.getOperators(category: 'Electricity');
-      // Mirrors: response.data.response.data
       final raw = data['response']?['data'] ?? data['data'];
       if (raw is List) {
         setState(() {
@@ -116,8 +110,6 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
       if (mounted) setState(() => _loading = false);
     }
   }
-
-  // ── filteredOperators — mirrors derived filteredOperators ────────────────
 
   List<ElectricityOperatorModel> get _filteredOperators {
     if (_searchQuery.isEmpty) return _operators;
@@ -286,8 +278,6 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     );
   }
 
-  // ── Skeleton loader — mirrors animate-pulse h-20 bg-gray-200 ─────────────
-
   Widget _buildSkeleton() {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -326,8 +316,6 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
           operator: op,
           colors: colors,
           onTap: () {
-            // Mirrors: navigate(`/app/electricity-recharge/${slug}`,
-            //   { state: { operatorName, operatorId, operatorData } })
             final slug = op.name.toLowerCase().replaceAll(RegExp(r'\s+'), '-');
             Navigator.pushNamed(
               context,
@@ -377,7 +365,6 @@ class _OperatorCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Colored Zap icon — mirrors <Zap className="w-6 h-6" />
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(

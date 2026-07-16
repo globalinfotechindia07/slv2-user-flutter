@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../widgets/select_field_popup.dart';
 import '../auth/otp_success_screen.dart';
-
-// ── Mobile Loan Form Screen — matches React MobileLoanForm.jsx exactly ────────
 // Flow:
 //   1 — OTP Verification (phone pre-filled, disabled)
 //   2 — After verification, 4-step form:

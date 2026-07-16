@@ -105,7 +105,7 @@ class LoanDetailsModel {
 factory LoanDetailsModel.fromJson(Map<String, dynamic> json) {
   return LoanDetailsModel(
     loanId: json['loanId']?.toString(),
-    applicationId: json['applicationId']?.toString(),
+    applicationId: json['application_id']?.toString(),
     status: json['status']?.toString(),
 
     productType: json['product_type']?.toString(),
@@ -370,7 +370,6 @@ class LoanDetailsScreen extends StatefulWidget {
 }
 
 class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
-  // Mirrors React: useState('personal'), useState(true), useState(null)
   String _activeTab = 'personal';
   bool _loading = true;
   EmiDetails? _emiDetails;
@@ -380,13 +379,11 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    // Mirrors: useEffect(() => { fetchEmiDetails() }, [loan?.loan_id])
     if (widget.loan.loanId != null) {
       _fetchEmiDetails();
     }
   }
 
-  // Mirrors React's fetchEmiDetails
   Future<void> _fetchEmiDetails() async {
     try {
       setState(() => _loading = true);
@@ -403,7 +400,6 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
     }
   }
 
-  // Mirrors React's fetchStatement
   Future<void> _fetchStatement() async {
     try {
       final response = await http.get(Uri.parse(
@@ -422,7 +418,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
     }
   }
 
-  // REPLACE WITH:
+  
 void _handleSelectEMIPlan() {
   final loan = widget.loan;
   Navigator.of(context).pushNamed(
@@ -455,10 +451,13 @@ void _handleSelectEMIPlan() {
   String _formatDate(String? dateStr, {bool includeTime = false}) {
     if (dateStr == null || dateStr.isEmpty) return '--';
     try {
-      final date = DateTime.parse(dateStr);
+      final date = DateTime.parse(dateStr).toLocal();
       final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       if (includeTime) {
-        return '${date.day}-${months[date.month - 1]}-${date.year}, ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+        final hour12 = date.hour % 12 == 0 ? 12 : date.hour % 12;
+        final period = date.hour >= 12 ? 'PM' : 'AM';
+        final minute = date.minute.toString().padLeft(2, '0');
+        return '${date.day}-${months[date.month - 1]}-${date.year}, $hour12:$minute $period';
       }
       return '${date.day.toString().padLeft(2, '0')}-${months[date.month - 1]}-${date.year}';
     } catch (_) {
@@ -1405,8 +1404,6 @@ class _TimelineItem extends StatelessWidget {
 }
 
 // ─── Statement Modal ──────────────────────────────────────────────────────────
-/// Mirrors React's <Statement> component — shown as a full-screen overlay
-
 class _StatementModal extends StatelessWidget {
   final List<StatementPayment> payments;
   final VoidCallback onClose;

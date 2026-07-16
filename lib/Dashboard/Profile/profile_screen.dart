@@ -222,7 +222,6 @@ class _ProfileScreenState extends State<ProfileScreen>{
   // late AnimationController _blobController;
   // late Animation<double> _blobAnimation;
 
-  // [ADDED] Allowed image extensions — mirrors React's validTypes list
   static const List<String> _allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
   @override
   void initState() {
@@ -496,8 +495,6 @@ Future<void> _handleImageChange() async {
   // ── Sticky Header ──────────────────────────────────────────────────────────
 
   Widget _buildHeader(BuildContext context) {
-    // [ADDED] ClipRect + BackdropFilter to replicate React's backdrop-blur-sm
-    // React: className="sticky top-0 bg-white/80 backdrop-blur-sm border-b"
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
@@ -542,9 +539,6 @@ Future<void> _handleImageChange() async {
                   color: Color(0xFF0F172A),
                 ),
               ),
-
-              // [ADDED] Help button — shows a SnackBar placeholder,
-              // matching React's UI button that is also not yet wired up
               IconButton(
                 onPressed: () {
                   // TODO: wire up to help/FAQ screen when ready
@@ -607,11 +601,6 @@ Future<void> _handleImageChange() async {
                     : _buildPlaceholderAvatar(),
               ),
             ),
-
-            // [ADDED] Upload spinner overlay on the avatar while loading —
-            // React's loading state disables the button + shows "Uploading..."
-            // text; Flutter additionally dims the avatar with a centered spinner
-            // so the user sees clear feedback on the image itself.
             if (_loading)
               Positioned.fill(
                 child: ClipOval(

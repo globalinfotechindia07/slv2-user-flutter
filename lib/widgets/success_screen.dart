@@ -1,66 +1,54 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+import 'package:confetti/confetti.dart';
 
-/// Flutter equivalent of React's <SuccessScreen> component.
-/// Shows a bouncing checkmark + confetti particles + auto-closes after 5 seconds.
+/// Shared success screen used across the app (loan submission, EMI plan
+/// selection, etc). Shows a bouncing checkmark + dual confetti cannons +
+/// auto-closes after 5 seconds.
 
 class SuccessScreen extends StatefulWidget {
   final VoidCallback onClose;
+  final String title;
+  final String message;
+  final String subMessage;
 
-  const SuccessScreen({Key? key, required this.onClose}) : super(key: key);
+  const SuccessScreen({
+    Key? key,
+    required this.onClose,
+    this.title = 'Congratulations!',
+    this.message = 'Your loan application form has been submitted successfully!',
+    this.subMessage = 'Our executives will contact you soon.',
+  }) : super(key: key);
 
   @override
   State<SuccessScreen> createState() => _SuccessScreenState();
 }
 
 class _SuccessScreenState extends State<SuccessScreen>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   late AnimationController _bounceController;
-  late AnimationController _confettiController;
-  late AnimationController _fadeController;
   late Animation<double> _bounceAnimation;
-  late Animation<double> _fadeAnimation;
-  late List<_ConfettiParticle> _particles;
+  late ConfettiController _confettiControllerLeft;
+  late ConfettiController _confettiControllerRight;
 
   @override
   void initState() {
     super.initState();
-
-    // Bounce animation for checkmark
     _bounceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _bounceAnimation = Tween<double>(begin: 0, end: -12).animate(
+      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
     );
-    _bounceAnimation = TweenSequence([
-      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.2), weight: 50),
-      TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 50),
-    ]).animate(
-        CurvedAnimation(parent: _bounceController, curve: Curves.easeOut));
-    _bounceController.forward().then((_) {
-      _bounceController.repeat(reverse: true);
-    });
 
-    // Confetti
-    _confettiController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    );
-    final rng = math.Random();
-    _particles = List.generate(30, (_) => _ConfettiParticle(rng));
-    _confettiController.forward();
+    _confettiControllerLeft =
+        ConfettiController(duration: const Duration(seconds: 2));
+    _confettiControllerRight =
+        ConfettiController(duration: const Duration(seconds: 2));
+    _confettiControllerLeft.play();
+    _confettiControllerRight.play();
 
-    // Fade in text
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _fadeAnimation =
-        CurvedAnimation(parent: _fadeController, curve: Curves.easeIn);
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) _fadeController.forward();
-    });
-
-    // Auto close after 5 seconds — mirrors React's useEffect timer
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted) widget.onClose();
     });
@@ -69,49 +57,56 @@ class _SuccessScreenState extends State<SuccessScreen>
   @override
   void dispose() {
     _bounceController.dispose();
-    _confettiController.dispose();
-    _fadeController.dispose();
+    _confettiControllerLeft.dispose();
+    _confettiControllerRight.dispose();
     super.dispose();
+  }
+
+  static const _confettiColors = [
+    Color(0xFF93C5FD),
+    Color(0xFF86EFAC),
+    Color(0xFFFCD34D),
+    Color(0xFFFCA5A5),
+    Color(0xFFC4B5FD),
+    Color(0xFFFDBA74),
+    Color(0xFFA5F3FC),
+  ];
+
+  Path _ovalParticlePath(Size size) {
+    final path = Path();
+    path.addOval(Rect.fromCircle(
+      center: Offset(size.width / 2, size.height / 2),
+      radius: size.width / 2,
+    ));
+    return path;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF1F2), Color(0xFFEFF6FF)],
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Confetti layer
-            AnimatedBuilder(
-              animation: _confettiController,
-              builder: (context, _) {
-                return CustomPaint(
-                  painter: _ConfettiPainter(
-                    particles: _particles,
-                    progress: _confettiController.value,
-                  ),
-                  size: MediaQuery.of(context).size,
-                );
-              },
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFF1F2), Color(0xFFEFF6FF)],
+              ),
             ),
-            // Content
-            Center(
+          ),
+          Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+          SafeArea(
+            child: Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Bouncing green checkmark
                     AnimatedBuilder(
                       animation: _bounceAnimation,
-                      builder: (context, child) => Transform.scale(
-                        scale: _bounceAnimation.value,
+                      builder: (_, child) => Transform.translate(
+                        offset: Offset(0, _bounceAnimation.value),
                         child: child,
                       ),
                       child: Container(
@@ -121,110 +116,92 @@ class _SuccessScreenState extends State<SuccessScreen>
                           color: Color(0xFF22C55E),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.check,
-                          color: Colors.white,
-                          size: 40,
-                        ),
+                        child: const Icon(Icons.check, color: Colors.white, size: 40),
                       ),
                     ),
                     const SizedBox(height: 24),
-                    // Fade-in text
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Congratulations!',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Your loan application form has been submitted successfully!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey.shade600,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Our executives will contact you soon.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
+                    Text(
+                      widget.title,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A),
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      widget.message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.subMessage,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+          Positioned(
+            left: 0,
+            top: MediaQuery.of(context).size.height * 0.4,
+            child: ConfettiWidget(
+              confettiController: _confettiControllerLeft,
+              blastDirection: -pi / 6,
+              blastDirectionality: BlastDirectionality.directional,
+              numberOfParticles: 18,
+              gravity: 0.15,
+              emissionFrequency: 0.01,
+              minBlastForce: 6,
+              maxBlastForce: 20,
+              minimumSize: const Size(3, 3),
+              maximumSize: const Size(6, 6),
+              colors: _confettiColors,
+              createParticlePath: _ovalParticlePath,
+            ),
+          ),
+          Positioned(
+            right: 0,
+            top: MediaQuery.of(context).size.height * 0.4,
+            child: ConfettiWidget(
+              confettiController: _confettiControllerRight,
+              blastDirection: pi + pi / 6,
+              blastDirectionality: BlastDirectionality.directional,
+              numberOfParticles: 18,
+              gravity: 0.15,
+              emissionFrequency: 0.01,
+              minBlastForce: 6,
+              maxBlastForce: 20,
+              minimumSize: const Size(3, 3),
+              maximumSize: const Size(6, 6),
+              colors: _confettiColors,
+              createParticlePath: _ovalParticlePath,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ─── Confetti Painter ─────────────────────────────────────────────────────────
-
-class _ConfettiParticle {
-  final double x;
-  final double speedY;
-  final double speedX;
-  final double size;
-  final Color color;
-  final double rotation;
-
-  _ConfettiParticle(math.Random rng)
-      : x = rng.nextDouble(),
-        speedY = 0.2 + rng.nextDouble() * 0.5,
-        speedX = (rng.nextDouble() - 0.5) * 0.1,
-        size = 6 + rng.nextDouble() * 8,
-        rotation = rng.nextDouble() * math.pi * 2,
-        color = [
-          const Color(0xFFDC2626),
-          const Color(0xFF2563EB),
-          const Color(0xFF22C55E),
-          const Color(0xFFF59E0B),
-          const Color(0xFFEC4899),
-        ][rng.nextInt(5)];
-}
-
-class _ConfettiPainter extends CustomPainter {
-  final List<_ConfettiParticle> particles;
-  final double progress;
-
-  const _ConfettiPainter({required this.particles, required this.progress});
-
+class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    for (final p in particles) {
-      final paint = Paint()
-        ..color = p.color.withOpacity(1 - progress * 0.5);
-      final cx = p.x * size.width + p.speedX * progress * size.width;
-      final cy = -20 + p.speedY * progress * (size.height + 40);
-      canvas.save();
-      canvas.translate(cx, cy);
-      canvas.rotate(p.rotation + progress * math.pi * 2);
-      canvas.drawRect(
-        Rect.fromCenter(
-            center: Offset.zero, width: p.size, height: p.size * 0.6),
-        paint,
-      );
-      canvas.restore();
+    final paint = Paint()
+      ..color = const Color(0x05000000)
+      ..strokeWidth = 1;
+    const step = 32.0;
+    for (double y = 0; y < size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+    for (double x = 0; x < size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _ConfettiPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

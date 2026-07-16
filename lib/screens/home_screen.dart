@@ -1561,9 +1561,6 @@ class _MyLoansSectionState extends State<_MyLoansSection> {
                           ),
 
                           const SizedBox(width: 8),
-
-                          // Righyt: amount + status badge
-                          // Right: amount + status badge — mt-3 equivalent matches React
 Padding(
   padding: const EdgeInsets.only(top: 4),
   child: Column(

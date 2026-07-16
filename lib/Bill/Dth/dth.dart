@@ -50,7 +50,6 @@ class _DthScreenState extends State<DthScreen> {
   Future<void> _fetchOperators() async {
     try {
       final data = await ApiService.getOperators(category: 'Dth');
-      // Mirrors: response.data.response.data
       final raw = data['response']?['data'] ?? data['data'];
       if (raw is List) {
         setState(() {
@@ -231,8 +230,6 @@ class _DthScreenState extends State<DthScreen> {
     );
   }
 
-  // ── Skeleton — animate-pulse h-20 bg-gray-200 rounded-xl ────────────────
-
   Widget _buildSkeleton() {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -270,8 +267,6 @@ class _DthScreenState extends State<DthScreen> {
           operator: op,
           colors: colors,
           onTap: () {
-            // Mirrors: navigate(`/app/dth-recharge/${slugified}`,
-            //   { state: { operatorName, operatorId } })
             Navigator.pushNamed(
               context,
               '/app/dth-recharge/details',

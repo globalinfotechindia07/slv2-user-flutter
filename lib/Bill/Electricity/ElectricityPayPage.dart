@@ -6,8 +6,6 @@ import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 
-// ── Model — mirrors billInfo state ───────────────────────────────────────────
-
 class ElectricityBillInfo {
   final String name;
   final String amount;
@@ -55,7 +53,6 @@ class ElectricityPayScreen extends StatefulWidget {
 }
 
 class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
-  // ── State — mirrors React useState ──────────────────────────────────────
   ElectricityBillInfo? _billInfo;
   bool _loading = true;
   String _amount = '';
@@ -88,13 +85,9 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
     super.dispose();
   }
 
-  // ── fetchBillInfo — mirrors useEffect fetchBillInfo ──────────────────────
-
   Future<void> _fetchBillInfo() async {
     try {
       final token = await AuthService.getToken();
-
-      // Build payload — mirrors React payload construction
       final payload = <String, dynamic>{
         'operator': widget.operatorId,
         'canumber': widget.formData['main'],
@@ -116,7 +109,6 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      // Mirrors: if (res.data.response.status && res.data.response.bill_fetch)
       if (data['response']?['status'] == true &&
           data['response']?['bill_fetch'] != null) {
         final billFetch =
@@ -134,9 +126,6 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
       if (mounted) setState(() => _loading = false);
     }
   }
-
-  // ── handlePay — mirrors the Pay button onClick ────────────────────────────
-
   Future<void> _handlePay() async {
     final amt = double.tryParse(_amount);
     if (amt == null || amt <= 0) return;
@@ -289,9 +278,6 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
   void _handleExternalWallet(ExternalWalletResponse response) {
     if (mounted) setState(() => _processing = false);
   }
-
-  // ── Build — mirrors the four render states ────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     if (_loading) return _buildLoadingSkeleton();
@@ -844,9 +830,6 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
       ),
     );
   }
-
-  // ── Bill info card — mirrors the white card with provider + bill details ──
-
   Widget _buildBillCard() {
     final info = _billInfo!;
     return Container(
@@ -938,8 +921,6 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
               ],
             ),
           ),
-
-          // Collapsible bill details — mirrors showDetails conditional
           if (_showDetails) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -954,8 +935,6 @@ class _ElectricityPayScreenState extends State<ElectricityPayScreen> {
               ),
             ),
           ],
-
-          // Amount box — mirrors the ₹ amount box with due date
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Container(

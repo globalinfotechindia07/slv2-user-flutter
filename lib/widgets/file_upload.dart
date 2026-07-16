@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 
-/// Flutter equivalent of React's <FileUpload> component.
-/// Supports image preview (mirrors FileReader + img preview in React),
-/// PDF picking, and file removal.
-
 class FileUpload extends StatefulWidget {
   final String label;
   final String? error;
@@ -28,13 +24,11 @@ class FileUpload extends StatefulWidget {
 }
 
 class _FileUploadState extends State<FileUpload> {
-  // Mirrors React's: const [preview, setPreview] = useState(null)
   File? _previewFile;
 
   @override
   void initState() {
     super.initState();
-    // Restore preview if value already set (e.g. after provider rebuild)
     if (widget.value != null && _isImage(widget.value!)) {
       _previewFile = widget.value;
     }
@@ -47,17 +41,16 @@ class _FileUploadState extends State<FileUpload> {
 
   String _fileName(File file) => file.path.split('/').last;
 
-  // Mirrors React's handleFileChange
+  
   void _handleFileSelected(File file) {
     if (_isImage(file)) {
-      setState(() => _previewFile = file); // mirrors setPreview(reader.result)
+      setState(() => _previewFile = file); 
     } else {
-      setState(() => _previewFile = null); // mirrors setPreview(null) for PDFs
+      setState(() => _previewFile = null); 
     }
     widget.onFileSelected(file);
   }
 
-  // Mirrors React's handleRemoveFile (e.stopPropagation + setPreview(null) + onRemove())
   void _handleRemove() {
     setState(() => _previewFile = null);
     widget.onRemove();
@@ -141,7 +134,6 @@ class _FileUploadState extends State<FileUpload> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label — mirrors <label className="text-sm font-medium text-slate-700">
         Text(
           widget.label,
           style: const TextStyle(
@@ -151,8 +143,6 @@ class _FileUploadState extends State<FileUpload> {
           ),
         ),
         const SizedBox(height: 6),
-
-        // Upload box — mirrors the outer border div with gradient blur effect
         GestureDetector(
           onTap: _showPickerOptions,
           child: Container(
@@ -172,8 +162,6 @@ class _FileUploadState extends State<FileUpload> {
             child: _buildContent(),
           ),
         ),
-
-        // Error message — mirrors the error div with AlertCircle icon
         if (widget.error != null && widget.error!.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4),
@@ -197,7 +185,6 @@ class _FileUploadState extends State<FileUpload> {
   }
 
   Widget _buildContent() {
-    // Mirrors React's ternary: preview ? <img/> : (value ? fileRow : emptyState)
     if (_previewFile != null) {
       return _ImagePreview(file: _previewFile!, onRemove: _handleRemove);
     } else if (widget.value != null) {
@@ -208,10 +195,6 @@ class _FileUploadState extends State<FileUpload> {
     }
   }
 }
-
-// ─── Image Preview ────────────────────────────────────────────────────────────
-/// Mirrors: <img src={preview} className="mx-auto max-h-40 ... object-contain" />
-/// with the absolute top-right X button
 
 class _ImagePreview extends StatelessWidget {
   final File file;
@@ -230,12 +213,11 @@ class _ImagePreview extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: Image.file(
               file,
-              height: 160, // mirrors max-h-40 (160px)
+              height: 160, 
               fit: BoxFit.contain,
             ),
           ),
         ),
-        // Mirrors: <button className="absolute top-0 right-0 bg-red-500 rounded-full p-1">
         GestureDetector(
           onTap: onRemove,
           child: Container(
@@ -253,7 +235,6 @@ class _ImagePreview extends StatelessWidget {
 }
 
 // ─── File Name Row ────────────────────────────────────────────────────────────
-/// Mirrors: <FileText /> + <span>{value.name}</span> + <X /> row
 
 class _FileNameRow extends StatelessWidget {
   final String fileName;
@@ -279,7 +260,6 @@ class _FileNameRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        // Mirrors: <button className="text-red-500"><X /></button>
         GestureDetector(
           onTap: onRemove,
           child: const Icon(Icons.close, size: 18, color: Color(0xFFEF4444)),
@@ -289,9 +269,7 @@ class _FileNameRow extends StatelessWidget {
   }
 }
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
-/// Mirrors: <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
-///          <p>'Click or drag files to upload'</p>
+
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({Key? key}) : super(key: key);

@@ -43,6 +43,17 @@ static Future<Map<String, dynamic>> sendOtp(String phoneNumber) async {
   data['statusCode'] = response.statusCode;
   return data;
 }
+// Send OTP for reference verification 
+static Future<Map<String, dynamic>> sendOtpReferenceVerification(String phoneNumber) async {
+  final response = await http.post(
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/auth/otp/send'),
+    headers: _headers,
+    body: jsonEncode({'phone': phoneNumber, 'purpose': 'REFERENCE_VERIFICATION'}),
+  );
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
+}
 
 static Future<Map<String, dynamic>> checkCustomerIdentity({
   required String phone,
@@ -567,34 +578,56 @@ static Future<Map<String, dynamic>> logout() async {
   );
   return jsonDecode(response.body);
 }
-static Future<Map<String, dynamic>> sendReferenceOtp({
-  required String phoneNumber,
-  required String referenceName,
-  required String applicationName,
-}) async {
+// static Future<Map<String, dynamic>> sendReferenceOtp({
+//   required String phoneNumber,
+//   required String referenceName,
+//   required String applicationName,
+// }) async {
+//   final response = await http.post(
+//     Uri.parse('${ApiConstants.otpBaseUrl}/new_otp2.php?action=send_otp'),
+//     headers: _headers,
+//     body: jsonEncode({
+//       'phone_number': phoneNumber,
+//       'reference_name': referenceName,
+//       'application_name': applicationName,
+//     }),
+//   );
+//   return jsonDecode(response.body);
+// }
+
+// Check how many other applicants already use this number as a reference
+// (fraud/abuse check, mirrors checkReferenceCountNode on the admin dashboard)
+static Future<Map<String, dynamic>> checkReferenceCount(String phoneNumber) async {
+  final token = await AuthService.getAccessToken();
+  final uri = Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/loans/references/check-count');
+  debugPrint('=== CHECK REFERENCE COUNT — URL: $uri ===');
   final response = await http.post(
-    Uri.parse('${ApiConstants.otpBaseUrl}/new_otp2.php?action=send_otp'),
-    headers: _headers,
-    body: jsonEncode({
-      'phone_number': phoneNumber,
-      'reference_name': referenceName,
-      'application_name': applicationName,
-    }),
+    uri,
+    headers: {
+      ..._headers,
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({'phone_number': phoneNumber}),
   );
-  return jsonDecode(response.body);
+  debugPrint('=== CHECK REFERENCE COUNT STATUS: ${response.statusCode} ===');
+  debugPrint('=== CHECK REFERENCE COUNT BODY: ${response.body} ===');
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  data['statusCode'] = response.statusCode;
+  return data;
 }
-static Future<Map<String, dynamic>> verifyReferenceOtp(
-    String phoneNumber, String otp) async {
-  final response = await http.post(
-    Uri.parse('${ApiConstants.otpBaseUrl}/new_otp2.php?action=verify_otp'),
-    headers: _headers,
-    body: jsonEncode({
-      'phone_number': phoneNumber,
-      'otp': otp,
-    }),
-  );
-  return jsonDecode(response.body);
-}
+
+// static Future<Map<String, dynamic>> verifyReferenceOtp(
+//     String phoneNumber, String otp) async {
+//   final response = await http.post(
+//     Uri.parse('${ApiConstants.otpBaseUrl}/new_otp2.php?action=verify_otp'),
+//     headers: _headers,
+//     body: jsonEncode({
+//       'phone_number': phoneNumber,
+//       'otp': otp,
+//     }),
+//   );
+//   return jsonDecode(response.body);
+// }
 static Future<Map<String, dynamic>> saveLoanDocuments(
     Map<String, dynamic> data) async {
   final request = http.MultipartRequest(
@@ -759,6 +792,20 @@ static MediaType _imageMediaType(String filePath) {
   return MediaType.parse(mimeMap[ext] ?? 'image/jpeg');
 }
 
+static MediaType _fileMediaType(String filePath) {
+  String ext = filePath.split('.').last.toLowerCase();
+  if (ext.contains('(')) ext = ext.split('(').first;
+  const mimeMap = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'webp': 'image/webp',
+    'gif': 'image/gif',
+    'pdf': 'application/pdf',
+  };
+  return MediaType.parse(mimeMap[ext] ?? 'application/octet-stream');
+}
+
 static Future<Map<String, dynamic>> registerCustomer(
     Map<String, dynamic> fields, {
     String? aadharImagePath,
@@ -914,6 +961,97 @@ static Future<Map<String, dynamic>> submitLoanApplication(
   final data = jsonDecode(response.body) as Map<String, dynamic>;
   data['statusCode'] = response.statusCode;
   return data;
+}
+
+// Disburse loan — sets up bank account, creates references, uploads all
+// loan/reference documents. Replaces the old PHP save_loan_documents.php.
+static Future<Map<String, dynamic>> disburseLoan({
+  required String applicationId,
+  required String bankName,
+  required String accountNumber,
+  required String ifscCode,
+  required String reference1Name,
+  required String reference1Contact,
+  required String reference2Name,
+  required String reference2Contact,
+  required Map<String, dynamic> selectedEmiPlan,
+  String? userName,
+  String? userDepartment,
+  String? passbookDocPath,
+  String? nachDocPath,
+  String? agreementDocPath,
+  String? reference1AadharDocPath,
+  String? reference1AadharDocBackPath,
+  String? reference1PanDocPath,
+  String? reference2AadharDocPath,
+  String? reference2AadharDocBackPath,
+  String? reference2PanDocPath,
+}) async {
+  final token = await AuthService.getAccessToken();
+  final request = http.MultipartRequest(
+    'POST',
+    Uri.parse('${ApiConstants.newAuthBaseUrl}/api/v2/mobile/loans/disburse'),
+  );
+  if (token != null && token.isNotEmpty) {
+    request.headers['Authorization'] = 'Bearer $token';
+  }
+
+  request.fields['application_id'] = applicationId;
+  request.fields['bankName'] = bankName;
+  request.fields['accountNumber'] = accountNumber;
+  request.fields['ifscCode'] = ifscCode;
+  request.fields['reference1Name'] = reference1Name;
+  request.fields['reference1Contact'] = reference1Contact;
+  request.fields['reference2Name'] = reference2Name;
+  request.fields['reference2Contact'] = reference2Contact;
+  request.fields['selectedEmiPlan'] = jsonEncode(selectedEmiPlan);
+  if (userName != null) request.fields['userName'] = userName;
+  if (userDepartment != null) request.fields['userDepartment'] = userDepartment;
+
+  final fileFields = <String, String?>{
+    'passbookDoc': passbookDocPath,
+    'nachDoc': nachDocPath,
+    'agreementDoc': agreementDocPath,
+    'reference1AadharDoc': reference1AadharDocPath,
+    'reference1AadharDocBack': reference1AadharDocBackPath,
+    'reference1PanDoc': reference1PanDocPath,
+    'reference2AadharDoc': reference2AadharDocPath,
+    'reference2AadharDocBack': reference2AadharDocBackPath,
+    'reference2PanDoc': reference2PanDocPath,
+  };
+  for (final entry in fileFields.entries) {
+    if (entry.value != null && entry.value!.isNotEmpty) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          entry.key,
+          entry.value!,
+          contentType: _fileMediaType(entry.value!),
+        ),
+      );
+    }
+  }
+
+  try {
+    final streamed = await request.send().timeout(
+      const Duration(seconds: 60),
+      onTimeout: () => throw Exception(
+          'Upload timed out. Please check your connection and try again.'),
+    );
+    final response = await http.Response.fromStream(streamed);
+    debugPrint('=== DISBURSE LOAN STATUS: ${response.statusCode} ===');
+    debugPrint('=== DISBURSE LOAN BODY: ${response.body} ===');
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    data['statusCode'] = response.statusCode;
+    return data;
+  } catch (e) {
+    debugPrint('=== DISBURSE LOAN ERROR: $e ===');
+    return {
+      'success': false,
+      'message': e.toString().contains('timed out')
+          ? 'Upload timed out. Please check your connection and try again.'
+          : 'Failed to disburse loan. Please try again.',
+    };
+  }
 }
 
 // Get active shops

@@ -82,7 +82,6 @@ lib/
 │   ├── splash_screen.dart
 │   ├── onboarding_screen.dart
 │   ├── login_screen.dart
-│   ├── otp_screen.dart
 │   ├── otp_success_screen.dart
 │   ├── mpin_screen.dart
 │   └── home_screen.dart
@@ -93,14 +92,3 @@ lib/
 
 ---
 
-## 🔧 Customisation Notes
-
-- **API Integration**: Replace the mock OTP flow in `otp_screen.dart` with your real SMS/OTP API
-- **MPIN Storage**: Add `flutter_secure_storage` to persist MPIN securely
-- **Navigation**: Each home section tap (`onTap: () {}`) needs routing to detail screens
-- **Banners**: Edit the `banners` list in `banner_carousel.dart` to load from a remote CMS
-- **Fonts**: Add Devanagari font support in `pubspec.yaml` for Hindi text rendering
-
----
-
-*Built from video recording of the original ShubhLabh Patsanstha WebAPK.*

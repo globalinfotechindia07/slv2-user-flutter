@@ -4,7 +4,6 @@ import '../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// ── Constants matching React exactly ─────────────────────────────────────────
 const Color _red = Color(0xFFE11D48);       // accent for pages 0,2
 const Color _blue = Color(0xFF1E40AF);      // accent for pages 1,3
 const Color _red600 = Color(0xFFDC2626);    // text-red-600
@@ -23,7 +22,6 @@ const List<IconData> _featureIcons = [
   Icons.currency_rupee,
 ];
 
-// ── Data — matches onboardingData in React exactly ────────────────────────────
 class _PageData {
   final String title;
   final String subtitle;
@@ -123,8 +121,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
-
-  // nextStep — matches React nextStep with isAnimating guard
   void _nextStep() {
     if (_currentPage < _pages.length - 1 && !_isAnimating) {
       setState(() => _isAnimating = true);
@@ -137,7 +133,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     }
   }
 
-  // previousStep — matches React previousStep, logo tap
   void _previousStep() {
     if (_currentPage > 0 && !_isAnimating) {
       setState(() => _isAnimating = true);
@@ -438,7 +433,7 @@ class _PageContentState extends State<_PageContent>
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
 
   // slideIn 0.5s ease-out forwards ${delay}s for feature cards
-  // delay = idx * 0.1 (React uses 0.1, we use 0.15 for smoother feel)
+  // delay = idx * 0.15 
   late final List<Animation<double>> _cardSlide = List.generate(3, (i) {
     final start = (i * 0.15).clamp(0.0, 0.85);
     final end = (start + 0.55).clamp(0.0, 1.0);
@@ -728,11 +723,6 @@ class _FeatureCardState extends State<_FeatureCard> {
 }
 
 // ── Continue Button ───────────────────────────────────────────────────────────
-// w-full group hover:scale-[1.02] transition-all duration-300
-// inner: p-4 bg-white rounded-xl shadow-sm border-slate-100
-//   flex justify-between:
-//     "Continue" text-base font-semibold text-slate-900
-//     "Next" + ChevronRight text-slate-400, chevron translates on hover
 
 class _ContinueButton extends StatefulWidget {
   final VoidCallback onTap;
@@ -830,11 +820,6 @@ class _ContinueButtonState extends State<_ContinueButton> {
 }
 
 // ── Get Started Button ────────────────────────────────────────────────────────
-// w-full hover:scale-[1.02] transition-all duration-300
-// inner: p-4 rounded-xl flex justify-center space-x-2
-//   bg=accent boxShadow: 0 8px 32px accent*40%
-//   "Get Started" text-base font-semibold text-white
-//   ArrowRight — group-hover:translate-x-1
 
 class _GetStartedButton extends StatefulWidget {
   final Color accent;
@@ -908,7 +893,6 @@ class _GetStartedButtonState extends State<_GetStartedButton> {
 }
 
 // ── Grid Painter ──────────────────────────────────────────────────────────────
-// bg-[linear-gradient(rgba(0,0,0,0.02)_1px,...)] bg-[size:32px_32px]
 
 class _GridPainter extends CustomPainter {
   @override

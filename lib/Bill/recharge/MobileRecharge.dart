@@ -5,17 +5,6 @@ import 'package:confetti/confetti.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../theme/app_theme.dart';
 
-// const String _kApiBase = 'http://localhost/backend';
-// const String _razorpayKey =
-//     String.fromEnvironment('RAZORPAY_KEY', defaultValue: 'rzp_test_XXXXXXXXXXXX');
-
-// ── Image asset paths ───────────────────────────────────────────────────
-// In the original React file these were imported (fd1.png, fd22.png, etc.)
-// but the carousel block that used them was commented out, and the
-// `slides` variable it referenced was never even defined in that file —
-// so the imports were unused dead code there too. Kept here as named
-// constants (matching your assets/images/ folder) in case you want to
-// re-enable a promo carousel on this screen later.
 class SlideAssets {
   static const fd1 = 'assets/images/fd1.png';
   static const fd22 = 'assets/images/fd22.png';
@@ -89,8 +78,6 @@ class PlanModel {
 
 class MobileRechargeScreen extends StatefulWidget {
   final Map<String, dynamic> userProfile;
-  // Unused in the original React file beyond being destructured — kept
-  // here only for parity / future use.
   final Map<String, dynamic>? serviceDetails;
 
   const MobileRechargeScreen({
@@ -104,7 +91,6 @@ class MobileRechargeScreen extends StatefulWidget {
 }
 
 class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
-  // Circles (matches React `circles` constant)
   static const List<String> _circles = [
     'Andhra Pradesh Telangana',
     'Assam',
@@ -158,12 +144,6 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
   Map<String, dynamic>? _rechargeStatus;
 
   List<OperatorModel> _operators = [];
-  // NOTE: in the original React file, `operatorsLoaded` is initialized to
-  // false and `setOperatorsLoaded` is never called anywhere — so it always
-  // stays false. That made `operatorsLoaded ? <Loader/> : ...` always fall
-  // through to the operator list branch. Kept identically here for parity;
-  // this field currently has no effect on the UI.
-  // ignore: unused_field
   bool _operatorsLoaded = false;
 
   late final Razorpay _razorpay;
@@ -310,9 +290,6 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
     });
     _maybeAutoAdvance();
   }
-
-  // Mirrors the React useEffect that watches mobile/operator/circle and
-  // auto-advances from step 1 to step 2 once all three are valid.
   void _maybeAutoAdvance() {
     if (_step != 1 || !_autoAdvance || !_hasInteracted) return;
     final mobileValid = RegExp(r'^\d{10}$').hasMatch(_mobileCtrl.text);
@@ -344,11 +321,6 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
     setState(() => _errors = e);
     return e.isEmpty;
   }
-
-  // Present in the React source as a standalone handler, though no button
-  // there directly calls it (the UI relies on auto-advance instead). Kept
-  // for parity — wire a "Continue" button to this if you need a manual
-  // fallback.
   void _handleContinue() {
     if (!_validateDetails()) return;
     setState(() => _step = 2);
@@ -492,9 +464,6 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
       ),
     );
   }
-
-  // ── Small render helper (matches React renderOperatorIcon) ─────────
-
   Widget _renderOperatorIcon(String? name, String? category) {
     final n = (name ?? '').toLowerCase();
     if (category == 'DTH') {
@@ -919,11 +888,6 @@ class _MobileRechargeScreenState extends State<MobileRechargeScreen> {
             _PlanDetailsOverlay(
               plan: _selectedPlan,
               onClose: () => setState(() => _isPlanDetailsOpen = false),
-              // NOTE: in the React source, this button's onClick referenced
-              // an out-of-scope `setFormData` (PlanDetailsPopup is a
-              // top-level component, not nested inside MobileRecharge), so
-              // clicking it would have thrown a ReferenceError at runtime.
-              // Wired correctly here via a callback instead.
               onProceed: (p) => setState(() {
                 _amount = p.rs;
                 _isPlanDetailsOpen = false;
@@ -1165,8 +1129,6 @@ class _InputField extends StatelessWidget {
     );
   }
 }
-
-// ── Select field popup (Flutter equivalent of React SelectFieldPopup) ──
 
 class _SelectFieldPopup extends StatelessWidget {
   final String label;
@@ -1477,9 +1439,6 @@ class _PlanCard extends StatelessWidget {
     );
   }
 }
-
-// ── Plan details overlay (Flutter equivalent of React PlanDetailsPopup) ─
-
 class _PlanDetailsOverlay extends StatelessWidget {
   final PlanModel? plan;
   final VoidCallback onClose;

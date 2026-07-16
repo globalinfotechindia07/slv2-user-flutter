@@ -13,13 +13,6 @@ import '../auth/mpin_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  OtpVerificationScreen
-//
-//  Three visual states:
-//    1. Phone entry   — user types number via intl_phone_number_input
-//    2. OTP entry     — 6 boxes, 30 s countdown, resend, shake on error
-//    3. Verified      — bouncing checkmark + dots → smart routing
-//
-//  SIM picker dialog shows EVERY TIME the phone-entry screen is displayed.
 // ─────────────────────────────────────────────────────────────────────────────
 class OtpVerificationScreen extends StatefulWidget {
   final String? savedPhoneNumber;
@@ -41,9 +34,8 @@ enum _ScreenState { phone, otp, verified }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     with TickerProviderStateMixin {
-  // ── App state ─────────────────────────────────────────────────────────────
   _ScreenState _screenState = _ScreenState.phone;
-  String _phoneNumber = '';       // plain 10-digit local number
+  String _phoneNumber = '';       
   final List<String> _otp = List.filled(6, '');
   String _error = '';
   String _requestId = '';
@@ -649,8 +641,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         return _buildPhoneStep();
     }
   }
-
-  // ── STATE 3 — Verified ────────────────────────────────────────────────────
   Widget _buildVerified() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -879,8 +869,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       ],
     );
   }
-
-  // ── STATE 1 — Phone Entry (with intl_phone_number_input) ──────────────────
   Widget _buildPhoneStep() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -954,7 +942,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                   ],
           ),
           child: InternationalPhoneNumberInput(
-            // Lock to India only — remove `countries` to allow all countries
             countries: const ['IN'],
             onInputChanged: (PhoneNumber number) {
               final raw = number.phoneNumber ?? '';
@@ -968,7 +955,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
               });
             },
             onInputValidated: (bool isValid) {
-              // Optionally surface validation state
             },
             selectorConfig: const SelectorConfig(
               selectorType: PhoneInputSelectorType.DROPDOWN,

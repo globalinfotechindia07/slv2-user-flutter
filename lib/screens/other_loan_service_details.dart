@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 
-// ── OtherLoanServiceDetail Screen — matches React OtherLoanServiceDetail.jsx ──
 // - Header: Back + service title + Help/FAQ icon
 // - Image carousel (auto-slide) per service type
 // - Personal details form: name, email, phone, address, aadhaar, pan (required/optional)

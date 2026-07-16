@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// ── SelectFieldPopup — matches React SelectFieldPopup.jsx exactly ─────────────
 // - Trigger input showing selected value or "Select {label}"
 // - Red border on error with AlertCircle + error message
 // - Bottom sheet popup sliding up from bottom (slideUp animation)

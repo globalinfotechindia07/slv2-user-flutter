@@ -46,16 +46,12 @@ class AppSidebar extends StatefulWidget {
 
 class _AppSidebarState extends State<AppSidebar>
     with SingleTickerProviderStateMixin {
-
-  // Mirrors React: useState('/api/placeholder/150/150'), useState(false)
   String? _profileImageUrl;
   bool _imageError = false;
   bool _logoutLoading = false;
 
   late AnimationController _animController;
   late Animation<Offset> _slideAnimation;
-
-  // Mirrors React's menuItems array
   final List<_MenuItem> _menuItems = const [
     _MenuItem(
       icon: Icons.person_outline,
@@ -97,7 +93,6 @@ class _AppSidebarState extends State<AppSidebar>
   @override
   void initState() {
     super.initState();
-    // Slide animation — mirrors CSS translate-x-0 / -translate-x-full transition
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -149,8 +144,6 @@ Future<void> _fetchUserData() async {
     if (mounted) setState(() => _imageError = true);
   }
 }
-
-  // Mirrors React's handleItemClick
   Future<void> _handleItemClick(_MenuItem item) async {
     if (item.label == 'Logout') {
       await _handleLogout();
@@ -200,8 +193,6 @@ Future<void> _fetchUserData() async {
   break;
     }
   }
-
-  // Mirrors React's logout axios.post logic
   Future<void> _handleLogout() async {
   setState(() => _logoutLoading = true);
   try {
@@ -225,7 +216,6 @@ Future<void> _fetchUserData() async {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Backdrop — mirrors <div className="fixed inset-0 bg-black/20 z-40">
         if (widget.isOpen)
           GestureDetector(
             onTap: widget.onClose,
@@ -235,8 +225,6 @@ Future<void> _fetchUserData() async {
               height: double.infinity,
             ),
           ),
-
-        // Sidebar panel — mirrors the sliding div w-[19rem]
         SlideTransition(
           position: _slideAnimation,
           child: Align(
@@ -262,8 +250,6 @@ Future<void> _fetchUserData() async {
                                 onTap: () => _handleItemClick(item),
                               )),
                           const SizedBox(height: 16),
-                          // // Security banner
-                          // const _SecurityBanner(),
                         ],
                       ),
                     ),
@@ -318,7 +304,6 @@ Future<void> _fetchUserData() async {
             ],
           ),
           const Spacer(),
-          // Close button — mirrors the X button top-right
           GestureDetector(
             onTap: widget.onClose,
             child: Icon(Icons.close, size: 24, color: Colors.grey.shade500),
@@ -351,8 +336,6 @@ Future<void> _fetchUserData() async {
 }
 
 // ─── Menu Tile ────────────────────────────────────────────────────────────────
-/// Mirrors React's <button> inside <li> for each menu item
-
 class _MenuTile extends StatelessWidget {
   final _MenuItem item;
   final VoidCallback onTap;
@@ -435,8 +418,6 @@ class _MenuTile extends StatelessWidget {
 }
 
 // ─── Security Banner ──────────────────────────────────────────────────────────
-/// Mirrors React's <SecurityBanner> component
-
 // class _SecurityBanner extends StatelessWidget {
 //   const _SecurityBanner({Key? key}) : super(key: key);
 

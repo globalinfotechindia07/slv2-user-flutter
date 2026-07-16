@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../services/api_service.dart'; // provides ApiService.listOffersCard()
+import '../services/api_service.dart';
 
 // ─── Offer Data Model ──────────────────────────────────────────────────────────
-// Replaces hardcoded BannerData — mirrors React's offer object fields
-
 class OfferData {
   final String id;
   final String imageUrl;
@@ -40,7 +38,6 @@ class OfferData {
 }
 
 // ─── BannerCarousel ────────────────────────────────────────────────────────────
-
 class BannerCarousel extends StatefulWidget {
   const BannerCarousel({super.key});
 
@@ -54,7 +51,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
   int _currentIndex = 0;
   Timer? _timer;
 
-  // [CHANGED] Dynamic API-loaded offers replacing hardcoded banners list
+  //Dynamic API-loaded offers
   List<OfferData> _offers = [];
   bool _loading = true;
   String? _error;
@@ -65,9 +62,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
     _fetchOffers();
   }
 
-  // ── Data Fetching ──────────────────────────────────────────────────────────
-  // Mirrors React's fetchOffers() inside useEffect
-
+  // ── Data Fetching ─────────────────────────────────────────────────────────
   Future<void> _fetchOffers() async {
     try {
       final response = await ApiService.listOffersCardV2();
@@ -123,9 +118,7 @@ void _pauseAndResume() {
     super.dispose();
   }
 
-  // ── Loading Skeleton ───────────────────────────────────────────────────────
-  // Mirrors React's animate-pulse skeleton with 3 shimmer bars
-
+  // ── Loading Skeleton ──────────────────────────────────────────────────────
   Widget _buildSkeleton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -155,8 +148,6 @@ void _pauseAndResume() {
   }
 
   // ── Error State ────────────────────────────────────────────────────────────
-  // Mirrors React's bg-red-50 error container
-
   Widget _buildError() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -182,13 +173,8 @@ void _pauseAndResume() {
 
   @override
   Widget build(BuildContext context) {
-    // [ADDED] Loading state — shown while API call is in progress
     if (_loading) return _buildSkeleton();
-
-    // [ADDED] Error state — shown if API call fails
     if (_error != null) return _buildError();
-
-    // Empty guard — nothing to show
     if (_offers.isEmpty) return const SizedBox.shrink();
 
     return Padding(
@@ -214,11 +200,7 @@ void _pauseAndResume() {
   }
 }
 
-// ─── OfferCard ─────────────────────────────────────────────────────────────────
-// [CHANGED] Replaces text+icon _BannerCard with image-based card
-// Mirrors React's OfferCard with 16:9 image + hover overlay
-// Flutter uses tap/long-press to toggle overlay (no hover on mobile)
-
+// ─── OfferCard ────────────────────────────────────────────────────────────────
 class _OfferCard extends StatefulWidget {
   final OfferData offer;
   final int currentIndex;
@@ -236,14 +218,9 @@ class _OfferCard extends StatefulWidget {
 
 class _OfferCardState extends State<_OfferCard>
     with SingleTickerProviderStateMixin {
-  // [ADDED] Overlay visibility — replaces React's CSS hover:opacity-100
   bool _overlayVisible = false;
-
-  // [ADDED] Scale animation — mirrors React's hover:scale-105
   late AnimationController _scaleCtrl;
   late Animation<double> _scaleAnim;
-
-  // v2 images are served from the Node server
   static final String _baseUrl = ApiConstants.newAuthBaseUrl;
 
   @override
@@ -271,7 +248,6 @@ class _OfferCardState extends State<_OfferCard>
 
   void _onTapUp(TapUpDetails _) {
     _scaleCtrl.reverse();
-    // Keep overlay visible briefly then hide — mirrors hover behaviour
     Future.delayed(const Duration(milliseconds: 1200), () {
       if (mounted) setState(() => _overlayVisible = false);
     });
@@ -308,13 +284,10 @@ class _OfferCardState extends State<_OfferCard>
               ),
             ],
           ),
-          // [ADDED] ClipRRect so image and overlay respect the card's border radius
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Stack(
               children: [
-                // ── 16:9 image ─────────────────────────────────────────
-                // Mirrors React's aspect-[16/9] image container
                 AspectRatio(
                   aspectRatio: 16 / 9,
                   child: Image.network(
@@ -322,7 +295,6 @@ class _OfferCardState extends State<_OfferCard>
                     fit: BoxFit.cover,
                     loadingBuilder: (_, child, progress) {
                       if (progress == null) return child;
-                      // Placeholder while image loads
                       return Container(
                         color: const Color(0xFFE2E8F0),
                         child: const Center(
@@ -337,10 +309,6 @@ class _OfferCardState extends State<_OfferCard>
                     ),
                   ),
                 ),
-
-                // ── Light dark gradient always present ─────────────────
-                // Mirrors React's "from-black/20 to-transparent opacity-0
-                // group-hover:opacity-100"
                 Positioned.fill(
                   child: AnimatedOpacity(
                     opacity: _overlayVisible ? 1.0 : 0.0,
@@ -359,10 +327,6 @@ class _OfferCardState extends State<_OfferCard>
                     ),
                   ),
                 ),
-
-                // ── Bottom overlay with title, desc, note, category ────
-                // Mirrors React's absolute bottom overlay
-                // "from-black/60 to-transparent opacity-0 group-hover:opacity-100"
                 Positioned(
                   left: 0,
                   right: 0,
@@ -386,7 +350,6 @@ class _OfferCardState extends State<_OfferCard>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // offersTitle — truncated, bold white
                           Text(
                             widget.offer.offersTitle,
                             maxLines: 1,
@@ -398,7 +361,6 @@ class _OfferCardState extends State<_OfferCard>
                             ),
                           ),
                           const SizedBox(height: 2),
-                          // offersDesc
                           Text(
                             widget.offer.offersDesc,
                             maxLines: 2,
@@ -409,7 +371,6 @@ class _OfferCardState extends State<_OfferCard>
                             ),
                           ),
                           const SizedBox(height: 4),
-                          // offersNote with Tag icon — mirrors React's Tag + span
                           Row(
                             children: [
                               const Icon(Icons.local_offer,
@@ -429,7 +390,6 @@ class _OfferCardState extends State<_OfferCard>
                             ],
                           ),
                           const SizedBox(height: 2),
-                          // category — white/80 opacity
                           Text(
                             widget.offer.category,
                             style: const TextStyle(
@@ -442,7 +402,6 @@ class _OfferCardState extends State<_OfferCard>
                     ),
                   ),
                 ),
-                // ── Pagination dot — single blue dot for active slide ──
                 Positioned(
                   left: 0,
                   right: 0,
@@ -466,32 +425,6 @@ class _OfferCardState extends State<_OfferCard>
                     }),
                   ),
                 ),
-
-                // ── Pagination dots inside card ─────────────────────────
-                // Kept from original Flutter card, placed at bottom center
-                // Positioned(
-                //   left: 0,
-                //   right: 0,
-                //   bottom: 8,
-                //   child: Row(
-                //     mainAxisAlignment: MainAxisAlignment.center,
-                //     children: List.generate(widget.totalCount, (i) {
-                //       final active = i == widget.currentIndex;
-                //       return AnimatedContainer(
-                //         duration: const Duration(milliseconds: 300),
-                //         margin: const EdgeInsets.symmetric(horizontal: 3),
-                //         width: active ? 18 : 8,
-                //         height: 6,
-                //         decoration: BoxDecoration(
-                //           color: active
-                //               ? Colors.white
-                //               : Colors.white.withOpacity(0.40),
-                //           borderRadius: BorderRadius.circular(3),
-                //         ),
-                //       );
-                //     }),
-                //   ),
-                // ),
               ],
             ),
           ),
@@ -502,8 +435,6 @@ class _OfferCardState extends State<_OfferCard>
 }
 
 // ─── Shimmer Bar ───────────────────────────────────────────────────────────────
-// Used by loading skeleton — mimics Tailwind's animate-pulse gray bars
-
 class _ShimmerBar extends StatefulWidget {
   final double width;
   final double height;

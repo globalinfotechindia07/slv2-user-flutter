@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-// ── NoInternet Widget — matches React NoInternet.jsx exactly ──────────────────
 // - Fixed overlay covering full screen (z-50)
 // - Blue-50 to white gradient background
 // - 3 floating cloud animations
@@ -87,11 +86,6 @@ class _NoInternetOverlayState extends State<NoInternetOverlay>
 
   Future<void> _checkConnectivity() async {
     try {
-      // Try fetching Google favicon like React does
-      // In Flutter we use a simple HTTP HEAD request
-      // Since we can't use http package here, we simulate connectivity check
-      // Replace with: final result = await InternetAddress.lookup('google.com');
-      // if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) { online }
       if (mounted) setState(() => _isOnline = true);
     } catch (_) {
       if (mounted) setState(() => _isOnline = false);

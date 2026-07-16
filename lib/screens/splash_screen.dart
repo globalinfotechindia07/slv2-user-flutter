@@ -470,9 +470,6 @@ class _TwinklingStarState extends State<_TwinklingStar>
   }
 }
 
-// ── Bounce Dot ────────────────────────────────────────────────────────────────
-// w-2 h-2 rounded-full animate-bounce
-
 class _BounceDot extends StatelessWidget {
   final AnimationController controller;
   final Color color;
@@ -483,7 +480,6 @@ class _BounceDot extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (_, __) => Transform.translate(
-        // animate-bounce: translateY 0 → -8px → 0
         offset: Offset(0, -8 * controller.value),
         child: Container(
           width: 8,  // w-2
@@ -497,9 +493,6 @@ class _BounceDot extends StatelessWidget {
     );
   }
 }
-
-// ── Grid Painter ──────────────────────────────────────────────────────────────
-// bg-[size:48px_48px] rgba(255,255,255,0.05)
 
 class _GridPainter extends CustomPainter {
   @override

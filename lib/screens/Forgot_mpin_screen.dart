@@ -484,9 +484,6 @@ Future<void> _resetMpin() async {
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 24, vertical: 16),
-                      // FIX: Success screen is now wrapped in the same
-                      // fade-up AnimatedBuilder so it gets the entry
-                      // animation, matching React's animate-fade-up.
                       child: AnimatedBuilder(
                         animation: _fadeUpCtrl,
                         builder: (_, child) => Opacity(
@@ -806,8 +803,6 @@ class _Step3 extends StatelessWidget {
         const Text('Confirm New MPIN',
             style: TextStyle(fontSize: 14, color: Color(0xFF475569))),
         const SizedBox(height: 8),
-
-        // Shake only on confirm row, matching React behaviour
         _ShakingRow(
           shakeAnim: shakeAnim,
           child: _MpinRow(
@@ -939,12 +934,6 @@ class _ShakingRow extends StatelessWidget {
   }
 }
 
-// ── Primary Button ────────────────────────────────────────────────────────────
-// FIX: Replaced the Positioned+ClipRRect+white-overlay approach (which hid
-// the gradient entirely) with a proper outer glow container using
-// BoxDecoration blur via a separate blurred Container behind the button,
-// matching React's "blur opacity-25 group-hover:opacity-50" effect.
-
 class _PrimaryButton extends StatefulWidget {
   final String label;
   final String loadingLabel;
@@ -980,7 +969,6 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
         transformAlignment: Alignment.center,
         child: Column(
           children: [
-            // Outer glow — matches React's blurred gradient div
             Container(
               height: 56,
               decoration: BoxDecoration(

@@ -114,9 +114,18 @@ class ShubhLabhApp extends StatelessWidget {
             );
             case '/app/emi-plan-selector':
               final args = settings.arguments as Map<String, dynamic>? ?? {};
+              final rawLoanDetails = args['loanDetails'] as Map<String, dynamic>? ?? {};
+              final normalizedLoanDetails = {
+                ...rawLoanDetails,
+                'application_id': rawLoanDetails['application_id'] ?? rawLoanDetails['applicationId'],
+                'loan_id': rawLoanDetails['loan_id'] ?? rawLoanDetails['loanId'],
+                'phone_number': rawLoanDetails['phone_number'] ?? rawLoanDetails['phoneNumber'],
+                'full_name': rawLoanDetails['full_name'] ?? rawLoanDetails['fullName'],
+                'approved_limit': rawLoanDetails['approved_limit'] ?? rawLoanDetails['approvedLimit'],
+              };
               return MaterialPageRoute(
                 builder: (_) => SelectEmiPlanScreen(
-                  loanDetails: args['loanDetails'] as Map<String, dynamic>? ?? {},
+                  loanDetails: normalizedLoanDetails,
                   userProfile: args['userProfile'] as Map<String, dynamic>? ?? {},
                 ),
               );

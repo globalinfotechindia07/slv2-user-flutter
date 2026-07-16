@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'dart:async';
 import 'sidebar.dart';
-// FIX: Removed unused faq_sidebar.dart import — Flutter uses FAQDialog not FAQSidebar
 import 'FAQSidebar.dart';
 
 class AppHeader extends StatefulWidget {
   final String userId;
   final VoidCallback onLogout;
-
-  // FIX: Updated to modern super.key syntax (was old Key? key + super(key: key))
   const AppHeader({
     super.key,
     required this.userId,
@@ -22,8 +19,6 @@ class AppHeader extends StatefulWidget {
 
 class _AppHeaderState extends State<AppHeader> {
   bool _isSidebarOpen = false;
-  // FIX: Added _isFAQOpen state to match React's isFAQOpen,
-  // so FAQSidebar can be rendered as a sibling like in React.
   bool _isFAQOpen = false;
   bool _hasUnread = false;
 
@@ -35,10 +30,6 @@ class _AppHeaderState extends State<AppHeader> {
     }
   }
 
-  // FIX: Added didUpdateWidget to restart polling if userId changes after
-  // mount — matches React's useEffect([userId]) dependency behaviour.
-  // Previously if userId started empty and later became valid,
-  // polling would never start.
   @override
   void didUpdateWidget(covariant AppHeader oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -67,9 +58,6 @@ class _AppHeaderState extends State<AppHeader> {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Wrapped in a Stack so Sidebar and FAQSidebar can be rendered
-    // as siblings outside the header bar, exactly like React renders
-    // <Sidebar> and <FAQSidebar> outside the <header> element.
     return Stack(
       children: [
         // ── Header bar ────────────────────────────────────────────────────
@@ -143,11 +131,6 @@ class _AppHeaderState extends State<AppHeader> {
                         ),
                     ],
                   ),
-
-                  // FIX: Help button now sets _isFAQOpen = true instead of
-                  // calling FAQDialog.show(context) directly, matching React's
-                  // onClick={() => setIsFAQOpen(true)} pattern. FAQSidebar is
-                  // rendered as a sibling below, consistent with React.
                   _HeaderIconBtn(
                     icon: Icons.help_outline,
                     onTap: () => setState(() => _isFAQOpen = true),
@@ -157,21 +140,12 @@ class _AppHeaderState extends State<AppHeader> {
             ],
           ),
         ),
-
-        // FIX: Sidebar now actually rendered as a sibling widget.
-        // Previously _isSidebarOpen was set to true but Sidebar was never
-        // placed in the widget tree — the drawer never appeared.
-        // onLogout is also now correctly passed through to Sidebar,
-        // matching React's <Sidebar onLogout={onLogout} />.
         Sidebar(
           isOpen: _isSidebarOpen,
           onClose: () => setState(() => _isSidebarOpen = false),
           userId: widget.userId,
           onLogout: widget.onLogout,
         ),
-
-        // FIX: FAQSidebar rendered as a sibling, matching React's
-        // <FAQSidebar isOpen={isFAQOpen} onClose={() => setIsFAQOpen(false)} />
         FAQSidebar(
           isOpen: _isFAQOpen,
           onClose: () => setState(() => _isFAQOpen = false),
@@ -209,7 +183,6 @@ class _HeaderIconBtn extends StatelessWidget {
 // ─── Pulsing Red Dot ──────────────────────────────────────────────────────────
 
 class _PulseDot extends StatefulWidget {
-  // FIX: Updated to modern super.key syntax
   const _PulseDot({super.key});
 
   @override

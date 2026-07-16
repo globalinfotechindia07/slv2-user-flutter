@@ -3,18 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:confetti/confetti.dart';
 import '../screens/home_screen.dart'; 
-
-
-// ── SelectEmiPlan Screen — matches React SelectEmiPlan.jsx exactly ────────────
-// 3 steps:
-//   0 — Select EMI Plan (generated from loanDetails min/max tenure)
-//   1 — Bank Details (bank name, account number, IFSC, file uploads)
-//   2 — Reference Details (2 references with OTP verification)
-// Header: Back + title + Help icon
-// StepIndicator: progress bar with percentage
-// Footer: sticky Next/Submit button (blue)
+import '../widgets/success_screen.dart';
 
 class SelectEmiPlanScreen extends StatefulWidget {
   final Map<String, dynamic> loanDetails;
@@ -30,8 +20,7 @@ class SelectEmiPlanScreen extends StatefulWidget {
   State<SelectEmiPlanScreen> createState() => _SelectEmiPlanScreenState();
 }
 
-class _SelectEmiPlanScreenState extends State<SelectEmiPlanScreen>
-    with TickerProviderStateMixin {
+class _SelectEmiPlanScreenState extends State<SelectEmiPlanScreen> {
   int _currentStep = 0;
   bool _loading = false;
   Map<String, String> _errors = {};
@@ -73,20 +62,15 @@ class _SelectEmiPlanScreenState extends State<SelectEmiPlanScreen>
   _OtpState _ref2Otp = const _OtpState();
   final _ref1OtpCtrl = TextEditingController();
   final _ref2OtpCtrl = TextEditingController();
-  late ConfettiController _confettiControllerLeft;
-  late ConfettiController _confettiControllerRight;
+  bool _isSubmitted = false;
 
-  @override
+@override
 void initState() {
   super.initState();
-  _confettiControllerLeft = ConfettiController(duration: const Duration(seconds: 2));
-  _confettiControllerRight = ConfettiController(duration: const Duration(seconds: 2));
 }
 
   @override
-  void dispose() {
-    _confettiControllerLeft.dispose();
-  _confettiControllerRight.dispose();
+void dispose() {
     _bankNameCtrl.dispose();
     _accountNumberCtrl.dispose();
     _ifscCtrl.dispose();
@@ -267,42 +251,124 @@ double principal = double.tryParse(
   // ── OTP handlers ──────────────────────────────────────────────────────────
 
   Future<void> _sendOtp(bool isRef1) async {
-    final contact =
-        isRef1 ? _ref1ContactCtrl.text : _ref2ContactCtrl.text;
-    final name =
-        isRef1 ? _ref1NameCtrl.text : _ref2NameCtrl.text;
+    final contactCtrl = isRef1 ? _ref1ContactCtrl : _ref2ContactCtrl;
+    final nameCtrl = isRef1 ? _ref1NameCtrl : _ref2NameCtrl;
+    final contact = contactCtrl.text.trim();
+    final name = nameCtrl.text.trim();
+    final contactKey = isRef1 ? 'reference1Contact' : 'reference2Contact';
+    final nameKey = isRef1 ? 'reference1Name' : 'reference2Name';
+    final aadharKey = isRef1 ? 'reference1AadharDoc' : 'reference2AadharDoc';
+    final aadharBackKey =
+        isRef1 ? 'reference1AadharDocBack' : 'reference2AadharDocBack';
+    final aadharDoc = isRef1 ? _ref1AadharDoc : _ref2AadharDoc;
+    final aadharDocBack = isRef1 ? _ref1AadharDocBack : _ref2AadharDocBack;
 
+    // ── Name — require first and last name, same as admin dashboard ────────
+    if (name.isEmpty) {
+      setState(() => _errors = {..._errors, nameKey: 'Reference name is required'});
+      return;
+    }
+    if (name.split(' ').where((s) => s.trim().isNotEmpty).length < 2) {
+      setState(() => _errors = {
+            ..._errors,
+            nameKey: 'Please enter full name (first and last name)',
+          });
+      return;
+    }
+
+    // ── Contact format + duplicate checks ───────────────────────────────────
     if (!RegExp(r'^\d{10}$').hasMatch(contact)) {
       setState(() => _errors = {
             ..._errors,
-            isRef1
-                ? 'reference1Contact'
-                : 'reference2Contact': 'Enter a valid 10-digit contact number',
+            contactKey: 'Enter a valid 10-digit contact number',
+          });
+      return;
+    }
+    final applicantPhone = (widget.loanDetails['phone_number'] ??
+        widget.loanDetails['phoneNumber'])
+    ?.toString() ??
+    '';
+    if (applicantPhone.isNotEmpty && contact == applicantPhone) {
+      setState(() => _errors = {
+            ..._errors,
+            contactKey: 'Reference contact cannot be same as applicant contact number',
+          });
+      return;
+    }
+    if (!isRef1 && contact == _ref1ContactCtrl.text.trim()) {
+      setState(() => _errors = {
+            ..._errors,
+            contactKey: 'Reference 2 contact cannot be same as Reference 1 contact',
+          });
+      return;
+    }
+
+    // ── Documents must be uploaded before an OTP can be requested ──────────
+    if (aadharDoc == null || aadharDocBack == null) {
+      setState(() => _errors = {
+            ..._errors,
+            if (aadharDoc == null) aadharKey: 'Please upload Aadhar Front document',
+            if (aadharDocBack == null)
+              aadharBackKey: 'Please upload Aadhar Back document',
           });
       return;
     }
 
     setState(() => _loading = true);
     try {
-        final result = await ApiService.sendReferenceOtp(
-          phoneNumber: contact,
-          referenceName: name,
-          applicationName: widget.loanDetails['full_name'] ?? '',
-        );
-        debugPrint('DEBUG sendReferenceOtp result: $result');
-        debugPrint('DEBUG OTP sent to $contact: ${result['otp'] ?? result['data']?['otp'] ?? 'OTP not returned by server'}');
+      // ── Reference-count fraud check (mirrors admin dashboard) ────────────
+      final checkResult = await ApiService.checkReferenceCount(contact);
+      final checkSuccess = checkResult['success'] == true;
+      if (!checkSuccess) {
+        _showToast(
+            checkResult['message'] ?? 'Failed to verify reference',
+            isError: true);
+        return;
+      }
+      final checkData = checkResult['data'] as Map<String, dynamic>?;
+      final count = (checkResult['count'] as num?)?.toInt() ??
+          (checkData?['count'] as num?)?.toInt() ??
+          0;
+      final maxAllowed = (checkResult['max_allowed'] as num?)?.toInt() ??
+          (checkData?['max_allowed'] as num?)?.toInt() ??
+          3;
+      if (count >= maxAllowed) {
+        setState(() => _errors = {
+              ..._errors,
+              contactKey:
+                  'This number is already a reference for $count people (max $maxAllowed allowed)',
+            });
+        return;
+      }
 
-      if (result['success'] == true) {
+      // ── Send OTP ──────────────────────────────────────────────────────────
+      final result = await ApiService.sendOtpReferenceVerification(contact);
+      debugPrint('DEBUG sendOtpReferenceVerification result: $result');
+
+      final success = result['success'] == true || result['status'] == 'success';
+      if (success) {
+        final data = result['data'] as Map<String, dynamic>?;
+        final requestId = (data?['request_id'] ?? data?['requestId'] ?? result['request_id'])
+                ?.toString() ??
+            '';
+
+        final devOtp = data?['otp'] ?? result['otp'];
+        if (devOtp != null) {
+          debugPrint('🔑 REFERENCE OTP CODE for $contact: $devOtp');
+        }
+
         setState(() {
           if (isRef1) {
             _ref1Otp = _ref1Otp.copyWith(
               otpSent: true,
               resendCount: _ref1Otp.resendCount + 1,
+              requestId: requestId,
             );
           } else {
             _ref2Otp = _ref2Otp.copyWith(
               otpSent: true,
               resendCount: _ref2Otp.resendCount + 1,
+              requestId: requestId,
             );
           }
         });
@@ -311,22 +377,22 @@ double principal = double.tryParse(
             result['message'] ?? 'Failed to send OTP', isError: true);
       }
     } catch (e) {
+      debugPrint('=== _sendOtp EXCEPTION: $e ===');
       _showToast('Failed to send OTP. Please try again.', isError: true);
     } finally {
       setState(() => _loading = false);
     }
   }
-
   Future<void> _verifyOtp(bool isRef1) async {
-    final contact =
-        isRef1 ? _ref1ContactCtrl.text : _ref2ContactCtrl.text;
     final otpVal =
         isRef1 ? _ref1OtpCtrl.text : _ref2OtpCtrl.text;
+    final requestId = isRef1 ? _ref1Otp.requestId : _ref2Otp.requestId;
 
     setState(() => _loading = true);
     try {
-      final result = await ApiService.verifyReferenceOtp(contact, otpVal);
-      if (result['success'] == true) {
+      final result = await ApiService.verifyOtp(requestId, otpVal);
+      final success = result['success'] == true || result['status'] == 'success';
+      if (success) {
         setState(() {
           if (isRef1) {
             _ref1Otp = _ref1Otp.copyWith(verified: true);
@@ -363,51 +429,41 @@ double principal = double.tryParse(
 
     setState(() => _loading = true);
     try {
-      // REPLACE WITH:
 if (_currentStep == _stepLabels.length - 1) {
-  final result = await ApiService.saveLoanDocuments({
-    'selectedEmiPlan': _selectedEmiPlan,
-    'bankName': _bankNameCtrl.text,
-    'accountNumber': _accountNumberCtrl.text,
-    'ifscCode': _ifscCtrl.text,
-    'passbookDoc': _passbookDoc,
-    'agreementDoc': _agreementDoc,
-    'nachDoc': _nachDoc,
-    'reference1Name': _ref1NameCtrl.text,
-    'reference1Contact': _ref1ContactCtrl.text,
-    'reference1AadharDoc': _ref1AadharDoc,
-    'reference1AadharDocBack': _ref1AadharDocBack,
-    'reference1PanDoc': _ref1PanDoc,
-    'reference2Name': _ref2NameCtrl.text,
-    'reference2Contact': _ref2ContactCtrl.text,
-    'reference2AadharDoc': _ref2AadharDoc,
-    'reference2AadharDocBack': _ref2AadharDocBack,
-    'reference2PanDoc': _ref2PanDoc,
-    'loan_id': widget.loanDetails['loan_id'],
-    'application_id': widget.loanDetails['application_id'],
-    'userName': widget.userProfile['name'],
-    'userDepartment': 'Customer',
-  });
+  debugPrint('=== DISBURSE PAYLOAD application_id: ${widget.loanDetails['application_id']} ===');
+  debugPrint('=== FULL loanDetails KEYS: ${widget.loanDetails.keys.toList()} ===');
+  final result = await ApiService.disburseLoan(
+    applicationId: (widget.loanDetails['application_id'] ??
+        widget.loanDetails['applicationId'])
+    ?.toString() ??
+    '',
+    bankName: _bankNameCtrl.text,
+    accountNumber: _accountNumberCtrl.text,
+    ifscCode: _ifscCtrl.text,
+    reference1Name: _ref1NameCtrl.text,
+    reference1Contact: _ref1ContactCtrl.text,
+    reference2Name: _ref2NameCtrl.text,
+    reference2Contact: _ref2ContactCtrl.text,
+    selectedEmiPlan: _selectedEmiPlan ?? {},
+    userName: widget.userProfile['name']?.toString(),
+    userDepartment: 'Customer',
+    passbookDocPath: _passbookDoc,
+    nachDocPath: _nachDoc,
+    agreementDocPath: _agreementDoc,
+    reference1AadharDocPath: _ref1AadharDoc,
+    reference1AadharDocBackPath: _ref1AadharDocBack,
+    reference1PanDocPath: _ref1PanDoc,
+    reference2AadharDocPath: _ref2AadharDoc,
+    reference2AadharDocBackPath: _ref2AadharDocBack,
+    reference2PanDocPath: _ref2PanDoc,
+  );
 
   if (result['success'] == true) {
-  _showToast('EMI plan successfully selected for ${widget.loanDetails['full_name'] ?? ''}');
   await ApiService.sendNotification(
     'You have successfully selected an EMI plan for Mobile Loan.',
     widget.userProfile['id'],
   );
-  _confettiControllerLeft.play();
-  _confettiControllerRight.play();
-  Future.delayed(const Duration(milliseconds: 2000), () {
-    if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const HomeScreen(initialTab: 2),
-        ),
-        (_) => false,
-      );
-    }
-  });
+  setState(() => _isSubmitted = true);
 } else {
   _showToast(result['message'] ?? 'Failed to submit EMI plan', isError: true);
 }
@@ -439,8 +495,22 @@ if (_currentStep == _stepLabels.length - 1) {
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
+ @override
+Widget build(BuildContext context) {
+  if (_isSubmitted) {
+    return SuccessScreen(
+      title: 'Congratulations!',
+      message: 'EMI plan successfully selected for '
+          '${widget.loanDetails['full_name'] ?? widget.loanDetails['fullName'] ?? ''}',
+      onClose: () {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen(initialTab: 2)),
+          (_) => false,
+        );
+      },
+    );
+  }
     return Scaffold(
       body: Stack(
         children: [
@@ -563,71 +633,71 @@ if (_currentStep == _stepLabels.length - 1) {
               ],
             ),
           ),
-// Left cannon
-Positioned(
-  left: 0,
-  top: MediaQuery.of(context).size.height * 0.4,
-  child: ConfettiWidget(
-    confettiController: _confettiControllerLeft,
-    blastDirection: 0,
-    blastDirectionality: BlastDirectionality.directional,
-    numberOfParticles: 22,
-    gravity: 0.15,
-    emissionFrequency: 0.02,
-    minimumSize: const Size(3, 3),
-    maximumSize: const Size(6, 6),
-    colors: const [
-      Color(0xFF93C5FD), // light blue
-      Color(0xFF86EFAC), // light green
-      Color(0xFFFCD34D), // light yellow
-      Color(0xFFFCA5A5), // light pink
-      Color(0xFFC4B5FD), // light purple
-      Color(0xFFFDBA74), // light orange
-      Color(0xFFA5F3FC), // light cyan
-    ],
-    createParticlePath: (size) {
-      final path = Path();
-      path.addOval(Rect.fromCircle(
-        center: Offset(size.width / 2, size.height / 2),
-        radius: size.width / 2,
-      ));
-      return path;
-    },
-  ),
-),
+// // Left cannon
+// Positioned(
+//   left: 0,
+//   top: MediaQuery.of(context).size.height * 0.4,
+//   child: ConfettiWidget(
+//     confettiController: _confettiControllerLeft,
+//     blastDirection: 0,
+//     blastDirectionality: BlastDirectionality.directional,
+//     numberOfParticles: 22,
+//     gravity: 0.15,
+//     emissionFrequency: 0.02,
+//     minimumSize: const Size(3, 3),
+//     maximumSize: const Size(6, 6),
+//     colors: const [
+//       Color(0xFF93C5FD), // light blue
+//       Color(0xFF86EFAC), // light green
+//       Color(0xFFFCD34D), // light yellow
+//       Color(0xFFFCA5A5), // light pink
+//       Color(0xFFC4B5FD), // light purple
+//       Color(0xFFFDBA74), // light orange
+//       Color(0xFFA5F3FC), // light cyan
+//     ],
+//     createParticlePath: (size) {
+//       final path = Path();
+//       path.addOval(Rect.fromCircle(
+//         center: Offset(size.width / 2, size.height / 2),
+//         radius: size.width / 2,
+//       ));
+//       return path;
+//     },
+//   ),
+// ),
 
-// Right cannon
-Positioned(
-  right: 0,
-  top: MediaQuery.of(context).size.height * 0.4,
-  child: ConfettiWidget(
-    confettiController: _confettiControllerRight,
-    blastDirection: pi,
-    blastDirectionality: BlastDirectionality.directional,
-    numberOfParticles: 22,
-    gravity: 0.15,
-    emissionFrequency: 0.02,
-    minimumSize: const Size(3, 3),
-    maximumSize: const Size(6, 6),
-    colors: const [
-      Color(0xFF93C5FD), // light blue
-      Color(0xFF86EFAC), // light green
-      Color(0xFFFCD34D), // light yellow
-      Color(0xFFFCA5A5), // light pink
-      Color(0xFFC4B5FD), // light purple
-      Color(0xFFFDBA74), // light orange
-      Color(0xFFA5F3FC), // light cyan
-    ],
-    createParticlePath: (size) {
-      final path = Path();
-      path.addOval(Rect.fromCircle(
-        center: Offset(size.width / 2, size.height / 2),
-        radius: size.width / 2,
-      ));
-      return path;
-    },
-  ),
-),       
+// // Right cannon
+// Positioned(
+//   right: 0,
+//   top: MediaQuery.of(context).size.height * 0.4,
+//   child: ConfettiWidget(
+//     confettiController: _confettiControllerRight,
+//     blastDirection: pi,
+//     blastDirectionality: BlastDirectionality.directional,
+//     numberOfParticles: 22,
+//     gravity: 0.15,
+//     emissionFrequency: 0.02,
+//     minimumSize: const Size(3, 3),
+//     maximumSize: const Size(6, 6),
+//     colors: const [
+//       Color(0xFF93C5FD), // light blue
+//       Color(0xFF86EFAC), // light green
+//       Color(0xFFFCD34D), // light yellow
+//       Color(0xFFFCA5A5), // light pink
+//       Color(0xFFC4B5FD), // light purple
+//       Color(0xFFFDBA74), // light orange
+//       Color(0xFFA5F3FC), // light cyan
+//     ],
+//     createParticlePath: (size) {
+//       final path = Path();
+//       path.addOval(Rect.fromCircle(
+//         center: Offset(size.width / 2, size.height / 2),
+//         radius: size.width / 2,
+//       ));
+//       return path;
+//     },
+//   ),
+// ),       
           // Toast
           if (_toast != null)
             Positioned(
@@ -643,6 +713,7 @@ Positioned(
       ),
     );
   }
+  
 
   // ── Step builders ─────────────────────────────────────────────────────────
 
@@ -953,18 +1024,26 @@ class _OtpState {
   final bool verified;
   final bool otpSent;
   final int resendCount;
+  final String requestId;
 
   const _OtpState({
     this.verified = false,
     this.otpSent = false,
     this.resendCount = 0,
+    this.requestId = '',
   });
 
-  _OtpState copyWith({bool? verified, bool? otpSent, int? resendCount}) {
+  _OtpState copyWith({
+    bool? verified,
+    bool? otpSent,
+    int? resendCount,
+    String? requestId,
+  }) {
     return _OtpState(
       verified: verified ?? this.verified,
       otpSent: otpSent ?? this.otpSent,
       resendCount: resendCount ?? this.resendCount,
+      requestId: requestId ?? this.requestId,
     );
   }
 }

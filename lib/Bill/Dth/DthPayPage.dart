@@ -56,13 +56,12 @@ class DthPayScreen extends StatefulWidget {
 }
 
 class _DthPayScreenState extends State<DthPayScreen> {
-  // ── State — mirrors React useState ──────────────────────────────────────
   DthInfo? _info;
   bool _loading = true;
   String _amount = '';
   bool _processing = false;
-  Map<String, dynamic>? _processStatus; // {step, message}
-  Map<String, dynamic>? _success;       // {message, operator, subscriberId, amount, referenceId}
+  Map<String, dynamic>? _processStatus; 
+  Map<String, dynamic>? _success;       
 
   final TextEditingController _amountCtrl = TextEditingController();
   late final Razorpay _razorpay;
@@ -87,8 +86,6 @@ class _DthPayScreenState extends State<DthPayScreen> {
     _razorpay.clear();
     super.dispose();
   }
-
-  // ── API — mirrors useEffect fetchDthInfo ─────────────────────────────────
 
   Future<void> _fetchDthInfo() async {
     try {

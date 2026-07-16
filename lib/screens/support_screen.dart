@@ -28,10 +28,7 @@ class SupportScreen extends StatefulWidget {
 }
 
 class _SupportScreenState extends State<SupportScreen> {
-  // Mirrors React: const [copied, setCopied] = useState('')
   String _copied = '';
-
-  // Mirrors React's contactMethods array
   final List<_ContactMethod> _contactMethods = const [
     _ContactMethod(
       title: 'Email Support',
@@ -52,8 +49,6 @@ class _SupportScreenState extends State<SupportScreen> {
       isRed: false,
     ),
   ];
-
-  // Mirrors React's handleContact
   Future<void> _handleContact(_ContactMethod method) async {
     final contact = method.contact.replaceAll(' ', '');
     final uri = method.type == 'tel'
@@ -64,7 +59,6 @@ class _SupportScreenState extends State<SupportScreen> {
     }
   }
 
-  // Mirrors React's handleCopy + setTimeout(() => setCopied(''), 2000)
   Future<void> _handleCopy(String contact) async {
     await Clipboard.setData(ClipboardData(text: contact));
     setState(() => _copied = contact);
@@ -198,8 +192,6 @@ class _SupportScreenState extends State<SupportScreen> {
 }
 
 // ─── Contact Card ─────────────────────────────────────────────────────────────
-/// Mirrors React's contact method card with icon, title, contact, copy button
-
 class _ContactCard extends StatelessWidget {
   final _ContactMethod method;
   final bool isCopied;
@@ -311,8 +303,6 @@ class _ContactCard extends StatelessWidget {
 }
 
 // ─── Toast Notification ───────────────────────────────────────────────────────
-/// Mirrors React's fixed bottom toast with slide-in animation
-
 class _ToastNotification extends StatefulWidget {
   const _ToastNotification({Key? key}) : super(key: key);
 
@@ -328,7 +318,6 @@ class _ToastNotificationState extends State<_ToastNotification>
   @override
   void initState() {
     super.initState();
-    // Mirrors React's animate-in slide-in-from-bottom
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -391,7 +380,6 @@ class _ToastNotificationState extends State<_ToastNotification>
 }
 
 // ─── Background Blobs ─────────────────────────────────────────────────────────
-/// Mirrors React's animate-pulse background blobs
 
 // class _BackgroundBlobs extends StatefulWidget {
 //   const _BackgroundBlobs({Key? key}) : super(key: key);
